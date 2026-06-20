@@ -1390,7 +1390,7 @@ function renderEngine() {
 
     deadBodies.forEach(b => {
         ctx.fillStyle = b.color || '#ef4444'; ctx.fillRect(b.x - 15, b.y, 30, 15);
-        ctx.ffffff'; ctx.beginPath(); ctx.arc(b.x, b.y, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(b.x, b.y, 6, 0, Math.PI * 2); ctx.fill();
     });
 
     bots.forEach(b => { 
@@ -1421,6 +1421,29 @@ function drawCharacter(x, y, color, tag, colorTag) {
     let displayTag = settings.colorblindMode ? `${tag} (${finalColorTag})` : tag;
     ctx.fillText(displayTag, x, y - 26);
 }
+
+socket.on('roomList', (rooms) => {
+    const container = document.getElementById('serverListContainer');
+    if (!container) return;
+    container.innerHTML = "";
+    rooms.forEach(room => {
+        let row = document.createElement('div');
+        row.className = "server-row";
+        row.innerHTML = `
+            <div class="server-info">
+                <div>🏡 ${room.hostName}'s Room</div>
+                <div style="font-size:11px; color:#94a3b8; margin-top:2px;">📶 Active Room ID: ${room.id} • Map: The Skeld</div>
+            </div>
+            <div class="server-players">${room.playerCount}/${room.maxPlayers}</div>
+        `;
+        row.onclick = () => {
+            isHostMode = false;
+            document.getElementById('serverBrowserUI').style.display = 'none';
+            socket.emit('joinRoom', { roomId: room.id, playerName: player.name, playerColor: player.color, playerColorName: player.colorName });
+        };
+        container.appendChild(row);
+    });
+});
 </script>
 </body>
 </html>
