@@ -678,6 +678,12 @@ document.getElementById('createGameBtn').onclick = () => {
     captureIdentity();
     isHostMode = true;
     document.getElementById('lobbyUI').style.display = 'none';
+    document.getElementById('waitingLobbyUI').style.display = 'flex';
+    document.getElementById('startMatchEarlyBtn').style.display = 'block';
+    document.getElementById('waitingLobbyTitle').textContent = "HOST LOBBY";
+    document.getElementById('waitingStatusText').textContent = "Configure settings and start match whenever ready";
+    document.getElementById('settingsContainerPanel').style.pointerEvents = "auto";
+    document.getElementById('settingsContainerPanel').style.opacity = "1";
     socket.emit('createRoom', { playerName: player.name, playerColor: player.color, playerColorName: player.colorName });
 };
 
