@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Among.html</title>
+    <title>Among Us Clone - Multiplayer Edition</title>
     <style>
         * {
             box-sizing: border-box;
@@ -237,7 +237,7 @@
         .setting-control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; color: #cbd5e1; }
         .setting-control-row select, .setting-control-row input { background: #1f2937; border: 1px solid #4b5563; color: white; padding: 4px; border-radius: 4px; font-family: inherit; }
 
-        .roster-grid { display: flex; flex-direction: column; gap: 8px; width: 340px; max-height: 240px; overflow-y: auto; margin: 15px 0; padding-right: 5px; }
+        .roster-grid { display: flex; flex-direction: column; gap: 8px; width: 340px; max-height: 180px; overflow-y: auto; margin: 15px 0; padding-right: 5px; }
         .roster-card { display: flex; justify-content: space-between; align-items: center; background: #1e293b; border: 1px solid #475569; padding: 8px 12px; border-radius: 6px; font-size: 13px; }
         .roster-card.dead-card { background: #0f172a; border-color: #ef4444; color: #94a3b8; }
         .vote-slot-btn { background: #22c55e; border: none; color: white; padding: 4px 10px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer; text-transform: uppercase; }
@@ -429,6 +429,9 @@
             <p id="meetingReasonText" style="margin-top: 5px; color: #cbd5e1; font-size: 13px;"></p>
             
             <div class="roster-grid" id="meetingRosterGrid"></div>
+            
+            <div id="meetingChatBox" style="width: 340px; height: 110px; background: #0f172a; border: 1px solid #475569; border-radius: 6px; overflow-y: auto; padding: 8px; text-align: left; font-size: 12px; display: flex; flex-direction: column; gap: 4px; margin-bottom: 5px;"></div>
+            <input type="text" id="meetingChatInput" placeholder="Type message & hit Enter..." style="width: 340px; background: #1f2937; border: 1px solid #4b5563; color: white; padding: 8px; border-radius: 4px; font-family: inherit; font-size: 12px; outline: none; margin-bottom: 10px;">
             
             <div style="display: flex; gap: 10px; width: 340px;">
                 <button class="btn" id="skipVoteBtn" style="background: #475569; flex: 1; margin-top: 5px; font-size: 14px; padding: 10px;">Skip Voting</button>
@@ -1125,6 +1128,26 @@ function completeActiveTask() {
     socket.emit('taskCompleted', { roomId: activeRoomId, taskId: activeTask.id });
 }
 
+document.getElementById('meetingChatInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        let val = e.target.value.trim();
+        if (val) {
+            socket.emit('sendMeetingMessage', { roomId: activeRoomId, text: val, sender: player.name, color: player.color });
+            e.target.value = "";
+        }
+    }
+});
+
+socket.on('meetingMessage', (data) => {
+    const box = document.getElementById('meetingChatBox');
+    if (box) {
+        const msg = document.createElement('div');
+        msg.innerHTML = `<span style="color: ${data.color}; font-weight: bold;">${data.sender}:</span> ${data.text}`;
+        box.appendChild(msg);
+        box.scrollTop = box.scrollHeight;
+    }
+});
+
 socket.on('playerKilled', (data) => {
     if(data.victimId === player.id) {
         player.isDead = true;
@@ -1167,6 +1190,7 @@ socket.on('meetingCalled', (data) => {
     playerVoteSelection = null;
     player.inVent = null;
 
+    document.getElementById('meetingChatBox').innerHTML = "";
     document.getElementById('meetingReasonText').textContent = data.reason;
     renderMeetingRoster(data.currentRoster);
     document.getElementById('meetingModal').style.display = 'flex';
@@ -1245,11 +1269,11 @@ socket.on('meetingResults', (data) => {
     }
 });
 
-socket.on('matchOver', (data) => {
+socket.on('matchEnded', (data) => {
     const endUI = document.getElementById('endUI');
     const wText = document.getElementById('winnerText');
     endUI.style.display = 'flex';
-    if(data.crewWon) { wText.textContent = "VICTORY"; wText.style.color = "#3b82f6"; }
+    if(data.winner === 'crew') { wText.textContent = "VICTORY"; wText.style.color = "#3b82f6"; }
     else { wText.textContent = "DEFEAT"; wText.style.color = "#ef4444"; }
 });
 
@@ -1421,29 +1445,6 @@ function drawCharacter(x, y, color, tag, colorTag) {
     let displayTag = settings.colorblindMode ? `${tag} (${finalColorTag})` : tag;
     ctx.fillText(displayTag, x, y - 26);
 }
-
-socket.on('roomList', (rooms) => {
-    const container = document.getElementById('serverListContainer');
-    if (!container) return;
-    container.innerHTML = "";
-    rooms.forEach(room => {
-        let row = document.createElement('div');
-        row.className = "server-row";
-        row.innerHTML = `
-            <div class="server-info">
-                <div>🏡 ${room.hostName}'s Room</div>
-                <div style="font-size:11px; color:#94a3b8; margin-top:2px;">📶 Active Room ID: ${room.id} • Map: The Skeld</div>
-            </div>
-            <div class="server-players">${room.playerCount}/${room.maxPlayers}</div>
-        `;
-        row.onclick = () => {
-            isHostMode = false;
-            document.getElementById('serverBrowserUI').style.display = 'none';
-            socket.emit('joinRoom', { roomId: room.id, playerName: player.name, playerColor: player.color, playerColorName: player.colorName });
-        };
-        container.appendChild(row);
-    });
-});
 </script>
 </body>
 </html>
