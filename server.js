@@ -7,58 +7,177 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+const rooms = {};
+
+app.use(express.static(path.join(__dirname)));
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+function getRoomList() {
+    return Object.keys(rooms).map(roomId => ({
+        id: roomId,
+        name: rooms[roomId].name,
+        players: rooms[roomId].players.length,
+        maxPlayers: rooms[roomId].maxPlayers,
+        status: rooms[roomId].status
+    }));
+}
+
 io.on('connection', (socket) => {
-    
+    let currentRoomId = null;
+    let playerId = socket.id;
+
+    socket.emit('roomList', getRoomList());
+
     socket.on('requestRoomList', () => {
-        
+        socket.emit('roomList', getRoomList());
     });
 
     socket.on('createRoom', (data) => {
+        const roomId = data.roomId || Math.random().toString(36).substring(2, 7).toUpperCase();
+        rooms[roomId] = {
+            id: roomId,
+            name: data.roomName || `${data.playerName}'s Lobby`,
+            maxPlayers: data.maxPlayers || 10,
+            status: 'lobby',
+            players: [],
+            gameState: {}
+        };
         
+        socket.emit('roomCreated', roomId);
+        io.emit('roomList', getRoomList());
     });
 
     socket.on('joinRoom', (data) => {
-        
+        const { roomId, playerName } = data;
+        const room = rooms[roomId];
+
+        if (!room) {
+            socket.emit('joinError', 'Room not found.');
+            return;
+        }
+
+        if (room.status !== 'lobby') {
+            socket.emit('joinError', 'Game has already started.');
+            return;
+        }
+
+        if (room.players.length >= room.maxPlayers) {
+            socket.emit('joinError', 'Room is full.');
+            return;
+        }
+
+        currentRoomId = roomId;
+        socket.join(roomId);
+
+        const newPlayer = {
+            id: playerId,
+            name: playerName,
+            x: 0,
+            y: 0,
+            z: 0,
+            role: 'crewmate',
+            isAlive: true
+        };
+
+        room.players.push(newPlayer);
+
+        socket.emit('joinSuccess', { roomId, players: room.players });
+        socket.to(roomId).emit('playerJoined', newPlayer);
+        io.emit('roomList', getRoomList());
     });
 
     socket.on('leaveRoom', () => {
-        
+        if (!currentRoomId || !rooms[currentRoomId]) return;
+
+        const room = rooms[currentRoomId];
+        room.players = room.players.filter(p => p.id !== playerId);
+
+        socket.to(currentRoomId).emit('playerLeft', playerId);
+        socket.leave(currentRoomId);
+
+        if (room.players.length === 0) {
+            delete rooms[currentRoomId];
+        }
+
+        currentRoomId = null;
+        io.emit('roomList', getRoomList());
     });
 
-    socket.on('startMatch', (data) => {
-        
+    socket.on('startMatch', () => {
+        if (!currentRoomId || !rooms[currentRoomId]) return;
+
+        const room = rooms[currentRoomId];
+        room.status = 'playing';
+
+        if (room.players.length > 0) {
+            const imposterIndex = Math.floor(Math.random() * room.players.length);
+            room.players.forEach((player, index) => {
+                player.role = (index === imposterIndex) ? 'imposter' : 'crewmate';
+            });
+        }
+
+        io.to(currentRoomId).emit('matchStarted', room.players);
+        io.emit('roomList', getRoomList());
     });
 
     socket.on('syncPosition', (data) => {
-        
+        if (!currentRoomId || !rooms[currentRoomId]) return;
+
+        const room = rooms[currentRoomId];
+        const player = room.players.find(p => p.id === playerId);
+        if (player) {
+            player.x = data.x;
+            player.y = data.y;
+            player.z = data.z;
+            socket.to(currentRoomId).emit('positionUpdated', { id: playerId, x: data.x, y: data.y, z: data.z });
+        }
     });
 
     socket.on('callMeeting', (data) => {
-        
+        if (!currentRoomId) return;
+        io.to(currentRoomId).emit('meetingCalled', { callerId: playerId, bodyFound: data?.bodyFound || false });
     });
 
     socket.on('submitVote', (data) => {
-        
+        if (!currentRoomId) return;
+        io.to(currentRoomId).emit('voteRegistered', { voterId: playerId, targetId: data.targetId });
     });
 
     socket.on('killPlayer', (data) => {
+        if (!currentRoomId || !rooms[currentRoomId]) return;
         
+        const room = rooms[currentRoomId];
+        const target = room.players.find(p => p.id === data.targetId);
+        if (target) {
+            target.isAlive = false;
+            io.to(currentRoomId).emit('playerKilled', data.targetId);
+        }
     });
 
     socket.on('triggerSabotage', (data) => {
-        
+        if (!currentRoomId) return;
+        socket.to(currentRoomId).emit('sabotageTriggered', data);
     });
 
     socket.on('taskCompleted', (data) => {
-        
+        if (!currentRoomId) return;
+        io.to(currentRoomId).emit('taskProgressUpdated', data);
     });
 
     socket.on('disconnect', () => {
-        
+        if (!currentRoomId || !rooms[currentRoomId]) return;
+
+        const room = rooms[currentRoomId];
+        room.players = room.players.filter(p => p.id !== playerId);
+        socket.to(currentRoomId).emit('playerLeft', playerId);
+
+        if (room.players.length === 0) {
+            delete rooms[currentRoomId];
+        }
+        io.emit('roomList', getRoomList());
     });
 });
 
