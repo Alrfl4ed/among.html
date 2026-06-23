@@ -2,1425 +2,758 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Among.html</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Space Sabotage</title>
     <style>
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
-            margin: 0;
-            padding: 0;
-        }
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
-            font-family: 'Courier New', Courier, monospace;
-            touch-action: none;
-        }
-        #gameContainer {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        canvas {
-            display: block;
-            background: #0b0f19;
-        }
-        .overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            z-index: 10;
-        }
-        #lobbyUI { background: rgba(10, 15, 30, 0.95); }
-        #serverBrowserUI { background: rgba(5, 8, 20, 0.98); display: none; }
-        #waitingLobbyUI { background: rgba(8, 12, 24, 0.99); display: none; flex-direction: row; justify-content: space-around; width: 100%; height: 100%; padding: 40px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        .waiting-left { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 50%; }
-        .waiting-right { display: flex; flex-direction: column; background: #111827; border: 2px solid #4b5563; border-radius: 8px; width: 45%; max-height: 90%; overflow-y: auto; padding: 20px; }
-
-        .input-field {
-            background: #222;
-            border: 2px solid #fff;
-            color: #fff;
-            padding: 10px;
-            font-size: 18px;
-            font-family: inherit;
-            text-align: center;
-            outline: none;
-            border-radius: 5px;
-            margin-top: 10px;
-            width: 250px;
-        }
-
-        .btn {
-            background-color: #ef4444;
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 5px;
-            margin-top: 15px;
-            text-transform: uppercase;
-        }
-        .btn:hover { background-color: #dc2626; }
+        .ui-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; justify-content: center; align-items: center; background: rgba(10, 15, 30, 0.85); color: #fff; }
+        .panel { background: #151d30; padding: 30px; border-radius: 12px; border: 2px solid #2a3b5c; width: 90%; max-width: 450px; text-align: center; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        h2 { margin-bottom: 20px; font-size: 24px; color: #00d2ff; text-transform: uppercase; letter-spacing: 1px; }
+        input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: none; font-size: 16px; outline: none; }
+        input, select { background: #0d1321; color: #fff; border: 1px solid #233253; }
+        button { background: #00a8ff; color: #fff; font-weight: bold; cursor: pointer; transition: background 0.2s; text-transform: uppercase; }
+        button:hover { background: #008cd3; }
+        .secondary-btn { background: #3a4b6e; }
+        .secondary-btn:hover { background: #2d3b58; }
         
-        .color-picker {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 8px;
-            margin-top: 15px;
-            max-width: 320px;
-        }
-        .color-dot {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 3px solid transparent;
-            position: relative;
-        }
-        .color-dot.selected { border-color: white; }
+        #lobby-ui { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; padding: 20px; color: #fff; pointer-events: none; }
+        .interactive { pointer-events: auto; }
         
-        .server-container {
-            width: 85%;
-            max-width: 550px;
-            background: #111827;
-            border: 3px solid #4b5563;
-            border-radius: 8px;
-            margin-top: 20px;
-            height: 250px;
-            overflow-y: auto;
-            padding: 10px;
-        }
-        .server-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #1f2937;
-            padding: 12px;
-            margin-bottom: 8px;
-            border-radius: 5px;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: background 0.1s;
-        }
-        .server-row:hover {
-            background: #374151;
-            border-color: #fff;
-        }
-        .server-info { font-weight: bold; font-size: 14px; }
-        .server-players { color: #22c55e; font-weight: bold; }
-
-        #utilityHUD {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            display: flex;
-            gap: 10px;
-            z-index: 5;
-        }
-        .util-btn {
-            width: 50px;
-            height: 50px;
-            background: rgba(0,0,0,0.6);
-            border: 2px solid #fff;
-            color: #fff;
-            font-size: 20px;
-            font-weight: bold;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            border-radius: 8px;
-        }
-
-        #actionHUD {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            gap: 15px;
-            z-index: 5;
-        }
-        .action-btn {
-            width: 75px;
-            height: 75px;
-            border-radius: 50%;
-            background: rgba(0,0,0,0.7);
-            border: 3px solid #fff;
-            color: #fff;
-            font-weight: bold;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            font-size: 12px;
-            text-transform: uppercase;
-            text-align: center;
-        }
-        .action-btn:active { background: rgba(255,255,255,0.4); }
-        #killBtn { border-color: #ef4444; color: #ef4444; display: none; }
-        #sabotageBtn { border-color: #a855f7; color: #a855f7; display: none; }
-        #ventBtn { border-color: #eab308; color: #eab308; display: none; }
-        #useBtn { border-color: #3b82f6; color: #3b82f6; display: none; }
-        #reportBtn { border-color: #f97316; color: #f97316; display: none; }
-
-        .modal { display: none; background: rgba(0,0,0,0.9); border: 4px solid #fff; z-index: 25; }
-        .modal-content { padding: 25px; border-radius: 10px; text-align: center; color: white; display: flex; flex-direction: column; align-items: center; }
+        .left-panel { position: absolute; top: 20px; left: 20px; width: 280px; display: flex; flex-direction: column; gap: 15px; }
+        .right-panel { position: absolute; top: 20px; right: 20px; width: 320px; display: flex; flex-direction: column; gap: 15px; }
         
-        .wire-container { display: flex; justify-content: space-between; width: 320px; height: 180px; margin: 20px 0; }
-        .wire-node { width: 45px; height: 35px; border-radius: 5px; cursor: pointer; margin-bottom: 10px; font-size: 11px; display: flex; justify-content: center; align-items: center; font-weight: bold; color: black; }
-
-        .slider-bg { width: 250px; height: 40px; background: #333; border: 2px solid #fff; position: relative; margin: 20px 0; border-radius: 20px; overflow: hidden; }
-        .slider-thumb { width: 50px; height: 100%; background: #eab308; position: absolute; left: 0; top: 0; cursor: pointer; border-radius: 20px; }
-
-        .sab-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-
-        #topBar {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: white;
-            z-index: 5;
-            font-size: 16px;
-            pointer-events: none;
-            width: calc(100% - 100px);
-        }
-        #taskProgressBg { width: 250px; height: 15px; background: #333; border: 2px solid #fff; margin-top: 5px; }
-        #taskProgressBar { width: 0%; height: 100%; background: #22c55e; transition: width 0.3s; }
-        #roleText { font-weight: bold; font-size: 18px; margin-top: 5px; }
-
-        #taskHUDTracker {
-            position: absolute;
-            top: 70px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #fff;
-            border-radius: 6px;
-            padding: 10px;
-            color: #fff;
-            max-width: 260px;
-            font-size: 12px;
-            z-index: 5;
-            pointer-events: none;
-            text-align: right;
-        }
-        .task-hud-item { margin-bottom: 4px; }
-        .task-hud-item.done { color: #22c55e; text-decoration: line-through; }
-
-        #mapModal { background: rgba(15, 23, 42, 0.95); }
-        #mapCanvasWrapper { width: 400px; height: 300px; background: #1e293b; border: 3px solid #fff; margin: 15px 0; position: relative; }
-        #miniMapCanvas { width: 100%; height: 100%; display: block; }
-
-        .settings-row { width: 100%; display: flex; justify-content: space-between; align-items: center; margin: 15px 0; gap: 40px; font-size: 18px; }
-        .toggle-switch { width: 50px; height: 26px; background: #475569; border-radius: 13px; position: relative; cursor: pointer; transition: background 0.2s; }
-        .toggle-switch.on { background: #22c55e; }
-        .toggle-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: left 0.2s; }
-        .toggle-switch.on::after { left: 27px; }
-
-        .setting-control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; color: #cbd5e1; }
-        .setting-control-row select, .setting-control-row input { background: #1f2937; border: 1px solid #4b5563; color: white; padding: 4px; border-radius: 4px; font-family: inherit; }
-
-        .roster-grid { display: flex; flex-direction: column; gap: 8px; width: 340px; max-height: 240px; overflow-y: auto; margin: 15px 0; padding-right: 5px; }
-        .roster-card { display: flex; justify-content: space-between; align-items: center; background: #1e293b; border: 1px solid #475569; padding: 8px 12px; border-radius: 6px; font-size: 13px; }
-        .roster-card.dead-card { background: #0f172a; border-color: #ef4444; color: #94a3b8; }
-        .vote-slot-btn { background: #22c55e; border: none; color: white; padding: 4px 10px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer; text-transform: uppercase; }
-        .vote-slot-btn:hover { background: #16a34a; }
-        .vote-slot-btn.disabled-btn { background: #4b5563; cursor: not-allowed; opacity: 0.5; }
+        .info-box { background: rgba(21, 29, 48, 0.85); border: 1px solid #2a3b5c; border-radius: 8px; padding: 15px; }
+        .player-list-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .color-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #fff; }
+        .host-tag { background: #ffd700; color: #000; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: bold; margin-left: auto; }
+        
+        .chat-box { height: 200px; display: flex; flex-direction: column; background: rgba(13, 19, 33, 0.9); border: 1px solid #2a3b5c; border-radius: 8px; overflow: hidden; }
+        .chat-messages { flex: 1; padding: 10px; overflow-y: auto; font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
+        .chat-input-container { display: flex; border-top: 1px solid #2a3b5c; }
+        .chat-input-container input { margin: 0; border: none; border-radius: 0; flex: 1; padding: 8px; font-size: 14px; }
+        .chat-input-container button { margin: 0; border-radius: 0; width: 60px; padding: 8px; font-size: 14px; }
+        
+        #joystick-container { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; z-index: 8; display: none; touch-action: none; }
+        #joystick-knob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+        
+        .action-btn { position: absolute; bottom: 40px; right: 40px; width: 80px; height: 80px; border-radius: 50%; background: rgba(21, 29, 48, 0.85); border: 3px solid #00a8ff; color: #fff; font-weight: bold; font-size: 14px; display: none; justify-content: center; align-items: center; z-index: 8; cursor: pointer; text-transform: uppercase; }
+        #vent-btn { right: 140px; border-color: #e84118; }
+        #sabotage-menu-btn { bottom: 140px; right: 40px; border-color: #ff9f43; }
+        
+        .minigame-screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; }
+        .lights-panel { background: #222; border: 4px solid #444; border-radius: 10px; padding: 30px; width: 320px; text-align: center; }
+        .bulbs-container { display: flex; justify-content: space-around; margin: 30px 0; }
+        .bulb-wrapper { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .bulb { width: 40px; height: 40px; border-radius: 50%; background: #441111; border: 2px solid #111; box-shadow: inset 0 0 10px #000; }
+        .bulb.on { background: #00ff00; border-color: #fff; box-shadow: 0 0 20px #00ff00, inset 0 0 5px #fff; }
+        .switch-btn { width: 60px; background: #333; border: 2px solid #555; padding: 8px; border-radius: 4px; color: #fff; font-weight: bold; cursor: pointer; }
+        .switch-btn.active { background: #555; border-color: #00ff00; }
+        
+        .sabotage-overlay { display: none; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(232, 65, 24, 0.9); color: #fff; padding: 12px 30px; border-radius: 6px; font-weight: bold; font-size: 18px; animation: blink 1s infinite; z-index: 6; border: 1px solid #ff4757; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        
+        #role-reveal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 30; background: #000; justify-content: center; align-items: center; flex-direction: column; }
+        #role-text { font-size: 48px; font-weight: bold; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 10px; }
+        #role-text.imposter { color: #ff4757; text-shadow: 0 0 25px #ff4757; }
+        #role-text.crewmate { color: #00d2ff; text-shadow: 0 0 25px #00d2ff; }
+        
+        .setting-row { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; font-size: 14px; }
+        .setting-row select { width: 100px; padding: 4px; margin: 0; }
     </style>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-<div id="gameContainer">
-    <canvas id="gameCanvas"></canvas>
+    <div id="canvas-container"></div>
 
-    <div id="topBar">
-        <div id="progressHeader">Tasks Progress:</div>
-        <div id="taskProgressBg"><div id="taskProgressBar"></div></div>
-        <div id="roleText"></div>
-        <div id="statusAlert" style="color: #ef4444; font-weight: bold; margin-top: 5px;"></div>
-    </div>
-
-    <div id="taskHUDTracker" style="display: none;"></div>
-
-    <div id="utilityHUD" style="display: none;">
-        <div class="util-btn" id="mapBtn">🗺️</div>
-        <div class="util-btn" id="settingsBtn">⚙️</div>
-    </div>
-
-    <div id="lobbyUI" class="overlay">
-        <div style="position: absolute; top: 10px; right: 10px;">
-            <div class="util-btn" id="lobbySettingsBtn">⚙️</div>
-        </div>
-        <h1>AMONG US</h1>
-        
-        <p style="margin-top: 15px;">Enter Name:</p>
-        <input type="text" id="playerNameInput" class="input-field" value="Player" maxlength="20">
-
-        <p style="margin-top: 15px;">Select color:</p>
-        <div class="color-picker" id="colorPicker"></div>
-        
-        <div style="display: flex; gap: 15px; margin-top: 10px;">
-            <button class="btn" id="findGameBtn" style="background-color: #3b82f6;">Find Game</button>
-            <button class="btn" id="createGameBtn" style="background-color: #10b981;">Create Game</button>
+    <div id="auth-screen" class="ui-screen">
+        <div class="panel">
+            <h2>Space Sabotage</h2>
+            <input type="text" id="username-input" placeholder="Enter Nickname" maxlength="15">
+            <select id="color-input">
+                <option value="#ff4757">Red</option>
+                <option value="#2ed573">Green</option>
+                <option value="#1e90ff">Blue</option>
+                <option value="#ffa502">Orange</option>
+                <option value="#eccc68">Yellow</option>
+                <option value="#a4b0be">Purple</option>
+            </select>
+            <select id="cosmetic-input">
+                <option value="none">No Cosmetic</option>
+                <option value="spacesuit">Classic Suit</option>
+                <option value="explorer">Explorer Cap</option>
+                <option value="captain">Captain Hat</option>
+            </select>
+            <button id="find-match-btn">Find Servers</button>
         </div>
     </div>
 
-    <div id="serverBrowserUI" class="overlay">
-        <h2 style="letter-spacing: 2px;">PUBLIC LOBBIES</h2>
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button class="btn" id="refreshServersBtn" style="margin: 0; padding: 8px 15px; background: #4b5563;">🔄 Refresh</button>
-            <button class="btn" id="backToLobbyBtn" style="margin: 0; padding: 8px 15px; background: #374151;">Back</button>
+    <div id="browser-screen" class="ui-screen" style="display:none;">
+        <div class="panel" style="max-width: 550px;">
+            <h2>Available Lobbies</h2>
+            <button id="create-lobby-btn" style="background:#2ed573;">Create New Lobby</button>
+            <div id="server-list" style="max-height: 220px; overflow-y: auto; margin: 15px 0; text-align: left;"></div>
+            <button class="secondary-btn" id="back-auth-btn">Back</button>
         </div>
-        <div class="server-container" id="serverListContainer"></div>
     </div>
 
-    <div id="waitingLobbyUI" class="overlay">
-        <div class="waiting-left">
-            <h1 id="waitingLobbyTitle">LOBBY</h1>
-            <p id="waitingStatusText" style="margin-top: 15px; font-size: 20px; color: #eab308; font-weight: bold;"></p>
-            <p id="playerCountText" style="margin-top: 5px; color: #a855f7;"></p>
-            <button class="btn" id="startMatchEarlyBtn" style="background-color: #ef4444; display: none;">Start Game</button>
-            <button class="btn" id="leaveWaitingLobbyBtn" style="background-color: #4b5563;">Leave</button>
+    <div id="lobby-ui">
+        <div class="left-panel interactive">
+            <div class="info-box">
+                <h3 style="color:#00d2ff; margin-bottom:8px; font-size:16px;">Lobby Settings</h3>
+                <div id="host-settings-view">
+                    <div class="setting-row">
+                        <span>Crewmate Vis:</span>
+                        <select id="setting-crew-vis" disabled>
+                            <option value="3">3m (Short)</option>
+                            <option value="6" selected>6m (Normal)</option>
+                            <option value="12">12m (Long)</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <span>Imposter Vis:</span>
+                        <select id="setting-imp-vis" disabled>
+                            <option value="8">8m (Short)</option>
+                            <option value="16" selected>16m (Normal)</option>
+                            <option value="24">24m (Long)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="info-box" style="flex: 1; display: flex; flex-direction: column;">
+                <h3 style="margin-bottom:8px; font-size:15px;">Crew Roster</h3>
+                <div id="player-list-container" style="flex:1; overflow-y:auto;"></div>
+            </div>
         </div>
-        <div class="waiting-right" id="settingsContainerPanel">
-            <h3 style="border-bottom: 1px solid #4b5563; padding-bottom: 5px; margin-bottom: 15px; letter-spacing: 1px;">GAME SETTINGS</h3>
+
+        <div class="right-panel interactive">
+            <div class="chat-box">
+                <div class="chat-messages" id="chat-display"></div>
+                <div class="chat-input-container">
+                    <input type="text" id="chat-input-field" placeholder="Send message..." maxlength="60">
+                    <button id="chat-send-btn">Send</button>
+                </div>
+            </div>
+            <button id="start-game-btn" style="display:none; background:#2ed573;">Start Match</button>
+            <button id="leave-lobby-btn" class="secondary-btn">Leave</button>
+        </div>
+    </div>
+
+    <div id="joystick-container"><div id="joystick-knob"></div></div>
+    <div id="use-btn" class="action-btn interactive">Use</div>
+    <div id="vent-btn" class="action-btn interactive">Vent</div>
+    <div id="sabotage-menu-btn" class="action-btn interactive" style="background:#e84118; border-color:#fff;">Sabotage</div>
+
+    <div id="sabotage-indicator" class="sabotage-overlay">FIX LIGHTS SYSTEM (3 BULBS)</div>
+
+    <div id="lights-minigame" class="minigame-screen interactive">
+        <div class="lights-panel">
+            <h3 style="color:#fff; margin-bottom:10px;">Breaker Switches</h3>
+            <div class="bulbs-container">
+                <div class="bulb-wrapper">
+                    <div class="bulb" id="bulb-0"></div>
+                    <button class="switch-btn" id="switch-0">OFF</button>
+                </div>
+                <div class="bulb-wrapper">
+                    <div class="bulb" id="bulb-1"></div>
+                    <button class="switch-btn" id="switch-1">OFF</button>
+                </div>
+                <div class="bulb-wrapper">
+                    <div class="bulb" id="bulb-2"></div>
+                    <button class="switch-btn" id="switch-2">OFF</button>
+                </div>
+            </div>
+            <button class="secondary-btn" onclick="closeMinigame()">Close Panel</button>
+        </div>
+    </div>
+
+    <div id="role-reveal">
+        <div id="role-text">Crewmate</div>
+        <div style="color:#aaa; font-size:16px;" id="role-desc">Complete tasks or find the imposter.</div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        let myLocalData = { name: 'Player', color: '#ff4757', cosmetic: 'none' };
+        function loadSavedProfile() {
+            const n = sessionStorage.getItem('as_name');
+            const c = sessionStorage.getItem('as_color');
+            const m = sessionStorage.getItem('as_cosm');
+            if(n) { myLocalData.name = n; document.getElementById('username-input').value = n; }
+            if(c) { myLocalData.color = c; document.getElementById('color-input').value = c; }
+            if(m) { myLocalData.cosmetic = m; document.getElementById('cosmetic-input').value = m; }
+        }
+        function saveProfile(n, c, m) {
+            sessionStorage.setItem('as_name', n);
+            sessionStorage.setItem('as_color', c);
+            sessionStorage.setItem('as_cosm', m);
+        }
+
+        loadSavedProfile();
+
+        let scene, camera, renderer;
+        let localPlayerMesh, ambientLight, spotlight;
+        let players = {};
+        let gameState = 'auth';
+        let myRoomId = null;
+        let isHost = false;
+        let myRole = 'crewmate';
+        let isAlive = true;
+        let isVenting = false;
+        let currentVent = null;
+        let lightsSabotaged = false;
+        let currentRoomSettings = { crewmateVis: 6, impVis: 16 };
+
+        const vents = [
+            { id: 'v1', x: -15, y: 0.1, z: -15 },
+            { id: 'v2', x: 15, y: 0.1, z: -15 },
+            { id: 'v3', x: 0, y: 0.1, z: 15 }
+        ];
+
+        let keys = { w: false, a: false, s: false, d: false };
+        let joystickActive = false;
+        let joystickStartX = 0, joystickStartY = 0;
+        let moveX = 0, moveY = 0;
+        let lastPositionEmit = 0;
+
+        document.getElementById('find-match-btn').addEventListener('click', () => {
+            const name = document.getElementById('username-input').value.trim() || 'Player';
+            const color = document.getElementById('color-input').value;
+            const cosmetic = document.getElementById('cosmetic-input').value;
+            myLocalData = { name, color, cosmetic };
+            saveProfile(name, color, cosmetic);
             
-            <div class="setting-control-row">
-                <label>Max Players</label>
-                <input type="number" id="set_maxPlayers" min="4" max="10" value="6">
-            </div>
-            <div class="setting-control-row">
-                <label>Number of Tasks</label>
-                <input type="number" id="set_numTasks" min="1" max="8" value="4">
-            </div>
-            <div class="setting-control-row">
-                <label>Impostors Count</label>
-                <input type="number" id="set_numImpostors" min="1" max="2" value="1">
-            </div>
-            <div class="setting-control-row">
-                <label>Emergency Buttons</label>
-                <input type="number" id="set_numButtons" min="0" max="5" value="1">
-            </div>
-            <div class="setting-control-row">
-                <label>Kill Cooldown (s)</label>
-                <input type="number" id="set_killCooldown" min="5" max="45" value="15">
-            </div>
-            <div class="setting-control-row">
-                <label>Vent Cooldown (s)</label>
-                <input type="number" id="set_ventCooldown" min="0" max="15" value="5">
-            </div>
-            <div class="setting-control-row">
-                <label>Player Speed</label>
-                <select id="set_playerSpeed">
-                    <option value="0.5">0.5x</option>
-                    <option value="1.0" selected>1.0x</option>
-                    <option value="1.5">1.5x</option>
-                    <option value="2.0">2.0x</option>
-                    <option value="2.5">2.5x</option>
-                </select>
-            </div>
-            <div class="setting-control-row">
-                <label>Taskbar Update</label>
-                <select id="set_taskbarUpdate">
-                    <option value="Always" selected>Always</option>
-                    <option value="Meetings">Meetings/Buttons Only</option>
-                    <option value="Never">Never</option>
-                </select>
-            </div>
-        </div>
-    </div>
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('browser-screen').style.display = 'flex';
+            socket.emit('requestRoomList');
+        });
 
-    <div id="roleCardUI" class="overlay" style="display: none; background: #000; z-index: 15;">
-        <h1 id="cardRoleName" style="font-size: 48px; letter-spacing: 5px;"></h1>
-        <p id="cardRoleDesc" style="margin-top: 10px; color: #aaa;"></p>
-    </div>
+        document.getElementById('create-lobby-btn').addEventListener('click', () => {
+            socket.emit('createRoom', {
+                playerName: myLocalData.name,
+                roomName: `${myLocalData.name}'s Bay`,
+                maxPlayers: 10,
+                crewmateVis: parseInt(document.getElementById('setting-crew-vis').value),
+                impVis: parseInt(document.getElementById('setting-imp-vis').value)
+            });
+        });
 
-    <div id="endUI" class="overlay" style="display: none; background: rgba(0,0,0,0.9); z-index: 20;">
-        <h1 id="winnerText" style="font-size: 48px;"></h1>
-        <button class="btn" onclick="location.reload()">Play Again</button>
-    </div>
+        document.getElementById('back-auth-btn').addEventListener('click', () => {
+            document.getElementById('browser-screen').style.display = 'none';
+            document.getElementById('auth-screen').style.display = 'flex';
+        });
 
-    <div id="mapModal" class="overlay modal">
-        <div class="modal-content" style="width: 450px;">
-            <h2>SABOTAGE / NAVIGATION MAP</h2>
-            <div id="mapCanvasWrapper">
-                <canvas id="miniMapCanvas" width="400" height="300"></canvas>
-            </div>
-            <button class="btn close-modal" id="closeMapBtn">Close Map</button>
-        </div>
-    </div>
+        document.getElementById('leave-lobby-btn').addEventListener('click', () => {
+            socket.emit('leaveRoom');
+            location.reload();
+        });
 
-    <div id="settingsModal" class="overlay modal">
-        <div class="modal-content" style="border-color: #64748b; min-width: 320px;">
-            <h2>SETTINGS</h2>
-            <div class="settings-row">
-                <span>Colorblind Mode</span>
-                <div class="toggle-switch" id="colorblindToggle"></div>
-            </div>
-            <button class="btn" id="leaveMatchBtn" style="background-color: #374151; display: none; width: 100%;">Leave Match</button>
-            <button class="btn close-modal" style="background-color: #ef4444;">Back</button>
-        </div>
-    </div>
+        document.getElementById('start-game-btn').addEventListener('click', () => {
+            socket.emit('startMatch');
+        });
 
-    <div id="wiresModal" class="overlay modal">
-        <div class="modal-content" style="border-color: #3b82f6;">
-            <h2>TASK: Fix Wiring</h2>
-            <p style="color: #aaa; margin-top: 5px;">Connect matching color fields from Left to Right</p>
-            <div class="wire-container" id="wireGameSpace"></div>
-            <div id="wiresFeedback" style="font-weight: bold; margin-top: 10px;"></div>
-            <button class="btn close-modal">Close</button>
-        </div>
-    </div>
+        document.getElementById('chat-send-btn').addEventListener('click', sendChatMessage);
+        document.getElementById('chat-input-field').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') sendChatMessage();
+        });
 
-    <div id="swipeModal" class="overlay modal">
-        <div class="modal-content" style="border-color: #3b82f6;">
-            <h2>TASK: Swipe Card</h2>
-            <p style="color: #aaa; margin-top: 5px;">Drag the yellow access card across the node track</p>
-            <div class="slider-bg" id="swipeTrack">
-                <div class="slider-thumb" id="swipeCard"></div>
-            </div>
-            <div id="swipeFeedback" style="font-weight: bold; margin-top: 10px;"></div>
-            <button class="btn close-modal">Close</button>
-        </div>
-    </div>
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input-field');
+            const text = input.value.trim();
+            if(!text) return;
+            socket.emit('sendChatMessage', { text });
+            input.value = '';
+        }
 
-    <div id="genericModal" class="overlay modal">
-        <div class="modal-content" style="border-color: #3b82f6;">
-            <h2 id="genericTaskTitle">Cleaning Task</h2>
-            <p style="color: #aaa; margin: 20px 0;">Hold button down for 2 seconds to synchronize</p>
-            <button class="btn" id="holdTaskBtn" style="background-color: #3b82f6;">HOLD TO ACTIVATE</button>
-            <div id="genericFeedback" style="font-weight: bold; margin-top: 15px;"></div>
-            <button class="btn close-modal">Close</button>
-        </div>
-    </div>
+        document.getElementById('setting-crew-vis').addEventListener('change', pushSettings);
+        document.getElementById('setting-imp-vis').addEventListener('change', pushSettings);
 
-    <div id="sabotageModal" class="overlay modal">
-        <div class="modal-content" style="border-color: #a855f7;">
-            <h2>SABOTAGE PANEL</h2>
-            <div class="sab-options">
-                <button class="btn" id="sabLightsBtn" style="background-color: #7c3aed; margin:0; font-size:14px; padding:15px;">Lights</button>
-                <button class="btn" id="sabDoorsBtn" style="background-color: #a855f7; margin:0; font-size:14px; padding:15px;">Lock Doors</button>
-            </div>
-            <button class="btn close-modal">Close</button>
-        </div>
-    </div>
+        function pushSettings() {
+            if(!isHost) return;
+            socket.emit('updateSettings', {
+                crewmateVis: parseInt(document.getElementById('setting-crew-vis').value),
+                impVis: parseInt(document.getElementById('setting-imp-vis').value)
+            });
+        }
 
-    <div id="meetingModal" class="overlay modal" style="background: rgba(15,23,42,0.98); z-index: 30;">
-        <div class="modal-content">
-            <h1 style="color: #ef4444; letter-spacing: 2px; font-size: 28px;">MEETING DISCUSSIONS</h1>
-            <p id="meetingReasonText" style="margin-top: 5px; color: #cbd5e1; font-size: 13px;"></p>
-            
-            <div class="roster-grid" id="meetingRosterGrid"></div>
-            
-            <div style="display: flex; gap: 10px; width: 340px;">
-                <button class="btn" id="skipVoteBtn" style="background: #475569; flex: 1; margin-top: 5px; font-size: 14px; padding: 10px;">Skip Voting</button>
-                <button class="btn" id="lockVoteBtn" style="background: #22c55e; flex: 1; margin-top: 5px; font-size: 14px; padding: 10px;">Lock In</button>
-            </div>
-        </div>
-    </div>
+        socket.on('roomList', (list) => {
+            const container = document.getElementById('server-list');
+            container.innerHTML = '';
+            if(list.length === 0) {
+                container.innerHTML = '<p style="color:#aaa; text-align:center;">No processing lobbies found.</p>';
+                return;
+            }
+            list.forEach(room => {
+                if(room.status === 'lobby') {
+                    const row = document.createElement('div');
+                    row.style.background = '#233253';
+                    row.style.padding = '12px';
+                    row.style.marginBottom = '8px';
+                    row.style.borderRadius = '6px';
+                    row.style.display = 'flex';
+                    row.style.justifyContent = 'space-between';
+                    row.style.alignItems = 'center';
+                    
+                    row.innerHTML = `
+                        <div>
+                            <strong>${room.name}</strong><br>
+                            <span style="font-size:12px; color:#00d2ff;">Players: ${room.players}/${room.maxPlayers}</span>
+                        </div>
+                        <button style="width:80px; padding:6px; margin:0; font-size:12px;" onclick="joinLobby('${room.id}')">Join</button>
+                    `;
+                    container.appendChild(row);
+                }
+            });
+        });
 
-    <div id="actionHUD">
-        <div class="action-btn" id="reportBtn">Report</div>
-        <div class="action-btn" id="useBtn">Use</div>
-        <div class="action-btn" id="ventBtn">Vent</div>
-        <div class="action-btn" id="sabotageBtn">Sabotage</div>
-        <div class="action-btn" id="killBtn">Kill</div>
-    </div>
-</div>
-
-<script>
-const socket = (typeof io !== 'undefined') ? io() : { on: function(){}, emit: function(){} };
-
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const miniMapCanvas = document.getElementById('miniMapCanvas');
-const mCtx = miniMapCanvas.getContext('2d');
-
-const CONFIG = {
-    worldWidth: 3200,
-    worldHeight: 2000,
-    basePlayerSpeed: 5,
-    sabotageDuration: 15000,
-    doorLockDuration: 8000
-};
-
-let gameSettings = {
-    maxPlayers: 6,
-    numTasks: 4,
-    numImpostors: 1,
-    numButtons: 1,
-    killCooldown: 15,
-    ventCooldown: 5,
-    speedModifier: 1.0,
-    taskbarUpdate: "Always"
-};
-
-let settings = {
-    colorblindMode: false,
-    inGame: false
-};
-
-let player = {
-    x: 1600, y: 550, 
-    radius: 20,
-    color: '#3b82f6',
-    colorName: 'BLUE',
-    name: 'Player',
-    isImpostor: false,
-    isDead: false,
-    inVent: null,
-    killCooldown: 0,
-    ventCooldownTimer: 0,
-    buttonsRemaining: 1,
-    id: null
-};
-
-let bots = [];
-let deadBodies = [];
-let lobbyCountdownTimer = null;
-let isHostMode = false;
-let forceShowTaskbar = false;
-let playerVoteSelection = null; 
-let activeRoomId = null;
-
-let walls = [
-    { x: 0, y: 0, width: 3200, height: 40 },
-    { x: 0, y: 0, width: 40, height: 2000 },
-    { x: 0, y: 1960, width: 3200, height: 40 },
-    { x: 3160, y: 0, width: 40, height: 2000 },
-    { x: 1300, y: 300, width: 600, height: 40 },
-    { x: 1300, y: 300, width: 40, height: 500 },
-    { x: 1860, y: 300, width: 40, height: 500 },
-    { x: 1300, y: 760, width: 180, height: 40 },
-    { x: 1720, y: 760, width: 180, height: 40 },
-    { x: 2100, y: 300, width: 500, height: 40 },
-    { x: 2600, y: 300, width: 40, height: 350 },
-    { x: 2100, y: 610, width: 540, height: 40 },
-    { x: 2000, y: 700, width: 250, height: 40 },
-    { x: 2000, y: 700, width: 40, height: 250 },
-    { x: 2000, y: 910, width: 250, height: 40 },
-    { x: 2210, y: 700, width: 40, height: 250 },
-    { x: 2650, y: 800, width: 400, height: 40 },
-    { x: 2650, y: 800, width: 40, height: 400 },
-    { x: 2650, y: 1160, width: 400, height: 40 },
-    { x: 2100, y: 1300, width: 500, height: 40 },
-    { x: 2600, y: 1300, width: 40, height: 400 },
-    { x: 2100, y: 1660, width: 540, height: 40 },
-    { x: 1700, y: 1500, width: 250, height: 40 },
-    { x: 1700, y: 1500, width: 40, height: 250 },
-    { x: 1700, y: 1710, width: 250, height: 40 },
-    { x: 1910, y: 1500, width: 40, height: 250 },
-    { x: 1300, y: 1100, width: 420, height: 40 },
-    { x: 1300, y: 1100, width: 40, height: 500 },
-    { x: 1760, y: 1100, width: 40, height: 500 },
-    { x: 1300, y: 1660, width: 500, height: 40 },
-    { x: 850, y: 1050, width: 220, height: 40 },
-    { x: 850, y: 1050, width: 40, height: 320 },
-    { x: 850, y: 1410, width: 300, height: 40 },
-    { x: 300, y: 1400, width: 400, height: 40 },
-    { x: 300, y: 1400, width: 40, height: 350 },
-    { x: 300, y: 1710, width: 400, height: 40 },
-    { x: 300, y: 350, width: 400, height: 40 },
-    { x: 300, y: 350, width: 40, height: 350 },
-    { x: 300, y: 660, width: 400, height: 40 },
-    { x: 100, y: 800, width: 40, height: 450 },
-    { x: 100, y: 800, width: 350, height: 40 },
-    { x: 100, y: 1210, width: 350, height: 40 },
-    { x: 550, y: 850, width: 200, height: 40 },
-    { x: 550, y: 850, width: 40, height: 250 },
-    { x: 550, y: 1060, width: 200, height: 40 },
-    { x: 850, y: 500, width: 300, height: 40 },
-    { x: 850, y: 500, width: 40, height: 350 },
-    { x: 850, y: 810, width: 300, height: 40 }
-];
-
-let doors = [
-    { id: 1, x: 1480, y: 760, width: 240, height: 40, open: true, timer: 0 }, 
-    { id: 2, x: 1070, y: 1050, width: 40, height: 120, open: true, timer: 0 }  
-];
-
-let allTasksPool = [
-    { id: 1, x: 1600, y: 400, name: "Cafeteria: Clear Trash", type: "hold" },
-    { id: 2, x: 2350, y: 450, name: "Weapons: Clear Asteroids", type: "hold" },
-    { id: 3, x: 2850, y: 980, name: "Navigation: Swipe Card", type: "swipe" },
-    { id: 4, x: 920, y: 1250, name: "Electrical: Fix Wiring", type: "wires" },
-    { id: 5, x: 200, y: 1000, name: "Reactor: Hold System", type: "hold" },
-    { id: 6, x: 960, y: 600, name: "MedBay: Submit Scan", type: "hold" },
-    { id: 7, x: 1450, y: 1400, name: "Storage: Swipe Entry", type: "swipe" },
-    { id: 8, x: 2350, y: 1500, name: "Shields: Fix Wiring", type: "wires" }
-];
-let activeMatchTasks = [];
-
-let vents = [
-    { id: 1, x: 1350, y: 450 }, { id: 2, x: 1000, y: 550 },
-    { id: 3, x: 950, y: 1150 }, { id: 4, x: 650, y: 950 },
-    { id: 5, x: 250, y: 450 },  { id: 6, x: 250, y: 1500 }
-];
-
-let colorsList = [
-    { hex: '#ef4444', name: 'RED' }, { hex: '#3b82f6', name: 'BLUE' }, 
-    { hex: '#22c55e', name: 'GREEN' }, { hex: '#eab308', name: 'YELLOW' }, 
-    { hex: '#a855f7', name: 'PURPLE' }, { hex: '#f97316', name: 'ORANGE' }, 
-    { hex: '#ec4899', name: 'PINK' }, { hex: '#64748b', name: 'GRAY' }, 
-    { hex: '#10b981', name: 'MINT' }, { hex: '#6366f1', name: 'INDIGO' }
-];
-
-let sabotageActive = false;
-let sabotageTimer = 0;
-let activeTask = null;
-let holdsTimer = 0;
-
-let keys = {};
-let joystick = { active: false, startX: 0, startY: 0, curX: 0, curY: 0, vx: 0, vy: 0 };
-let isMobile = false;
-
-const colorPicker = document.getElementById('colorPicker');
-colorsList.forEach((col, idx) => {
-    const dot = document.createElement('div');
-    dot.className = `color-dot ${idx === 1 ? 'selected' : ''}`;
-    dot.style.backgroundColor = col.hex;
-    dot.onclick = () => {
-        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
-        dot.classList.add('selected');
-        player.color = col.hex;
-        player.colorName = col.name;
-    };
-    colorPicker.appendChild(dot);
-});
-
-function toggleColorblind() {
-    settings.colorblindMode = !settings.colorblindMode;
-    document.getElementById('colorblindToggle').classList.toggle('on', settings.colorblindMode);
-}
-document.getElementById('colorblindToggle').onclick = toggleColorblind;
-
-const openSettings = () => {
-    document.getElementById('leaveMatchBtn').style.display = settings.inGame ? "block" : "none";
-    document.getElementById('settingsModal').style.display = "flex";
-};
-document.getElementById('lobbySettingsBtn').onclick = openSettings;
-document.getElementById('settingsBtn').onclick = openSettings;
-
-document.getElementById('leaveMatchBtn').onclick = () => { location.reload(); };
-
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
-window.addEventListener('keydown', e => {
-    keys[e.key.toLowerCase()] = true;
-    if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(e.key)) e.preventDefault();
-});
-window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
-
-window.addEventListener('touchstart', e => {
-    isMobile = true;
-    const touch = e.touches[0];
-    const lobbyUI = document.getElementById('lobbyUI');
-    const serverBrowserUI = document.getElementById('serverBrowserUI');
-    const waitingLobbyUI = document.getElementById('waitingLobbyUI');
-    if(touch.clientX < window.innerWidth / 2 && lobbyUI.style.display === 'none' && serverBrowserUI.style.display === 'none' && waitingLobbyUI.style.display === 'none') { 
-        joystick.active = true;
-        joystick.startX = touch.clientX; joystick.startY = touch.clientY;
-        joystick.curX = touch.clientX; joystick.curY = touch.clientY;
-    }
-}, { passive: false });
-
-window.addEventListener('touchmove', e => {
-    if (!joystick.active) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    joystick.curX = touch.clientX; joystick.curY = touch.clientY;
-    let dx = joystick.curX - joystick.startX;
-    let dy = joystick.curY - joystick.startY;
-    let dist = Math.sqrt(dx*dx + dy*dy);
-    let maxDist = 50;
-    if(dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
-    joystick.vx = dx / maxDist; joystick.vy = dy / maxDist;
-}, { passive: false });
-
-window.addEventListener('touchend', () => { joystick.active = false; joystick.vx = 0; joystick.vy = 0; });
-
-function captureIdentity() {
-    let nameVal = document.getElementById('playerNameInput').value.trim();
-    player.name = nameVal ? nameVal.substring(0,20) : "Player";
-}
-
-document.getElementById('findGameBtn').onclick = () => {
-    captureIdentity();
-    document.getElementById('lobbyUI').style.display = 'none';
-    document.getElementById('serverBrowserUI').style.display = 'flex';
-    socket.emit('requestRoomList');
-};
-
-document.getElementById('createGameBtn').onclick = () => {
-    captureIdentity();
-    isHostMode = true;
-    document.getElementById('lobbyUI').style.display = 'none';
-    document.getElementById('waitingLobbyUI').style.display = 'flex';
-    document.getElementById('startMatchEarlyBtn').style.display = 'block';
-    document.getElementById('waitingLobbyTitle').textContent = "HOST LOBBY";
-    document.getElementById('waitingStatusText').textContent = "Configure settings and start match whenever ready";
-    document.getElementById('settingsContainerPanel').style.pointerEvents = "auto";
-    document.getElementById('settingsContainerPanel').style.opacity = "1";
-    socket.emit('createRoom', { playerName: player.name, playerColor: player.color, playerColorName: player.colorName });
-};
-
-document.getElementById('backToLobbyBtn').onclick = () => {
-    document.getElementById('serverBrowserUI').style.display = 'none';
-    document.getElementById('lobbyUI').style.display = 'flex';
-};
-
-document.getElementById('refreshServersBtn').onclick = () => {
-    socket.emit('requestRoomList');
-};
-
-document.getElementById('leaveWaitingLobbyBtn').onclick = () => {
-    socket.emit('leaveRoom');
-    document.getElementById('waitingLobbyUI').style.display = 'none';
-    document.getElementById('lobbyUI').style.display = 'flex';
-};
-
-socket.on('roomList', (rooms) => {
-    const container = document.getElementById('serverListContainer');
-    container.innerHTML = "";
-    
-    rooms.forEach(room => {
-        let row = document.createElement('div');
-        row.className = "server-row";
-        row.innerHTML = `
-            <div class="server-info">
-                <div>🏡 ${room.hostName}'s Room</div>
-                <div style="font-size:11px; color:#94a3b8; margin-top:2px;">📶 Active Room ID: ${room.id} • Map: The Skeld</div>
-            </div>
-            <div class="server-players">${room.playerCount}/${room.maxPlayers}</div>
-        `;
-        row.onclick = () => {
-            isHostMode = false;
-            document.getElementById('serverBrowserUI').style.display = 'none';
-            socket.emit('joinRoom', { roomId: room.id, playerName: player.name, playerColor: player.color, playerColorName: player.colorName });
+        window.joinLobby = function(roomId) {
+            socket.emit('joinRoom', {
+                roomId,
+                playerName: myLocalData.name,
+                color: myLocalData.color,
+                cosmetic: myLocalData.cosmetic
+            });
         };
-        container.appendChild(row);
-    });
-});
 
-socket.on('roomJoined', (data) => {
-    activeRoomId = data.roomId;
-    player.id = data.playerId;
-    setupWaitingLobbyView(data.roomState);
-});
+        socket.on('roomCreated', (roomId) => {
+            joinLobby(roomId);
+        });
 
-socket.on('roomUpdate', (roomState) => {
-    if(!settings.inGame) {
-        setupWaitingLobbyView(roomState);
-    }
-});
+        socket.on('joinSuccess', (data) => {
+            myRoomId = data.roomId;
+            gameState = 'lobby';
+            document.getElementById('browser-screen').style.display = 'none';
+            document.getElementById('lobby-ui').style.display = 'block';
+            
+            init3DEnvironment();
+            updateLobbyState(data.players, data.hostId, data.settings);
+        });
 
-function setupWaitingLobbyView(roomState) {
-    const view = document.getElementById('waitingLobbyUI');
-    const startBtn = document.getElementById('startMatchEarlyBtn');
-    const statusText = document.getElementById('waitingStatusText');
-    const countText = document.getElementById('playerCountText');
-    const settingsPanel = document.getElementById('settingsContainerPanel');
-    
-    view.style.display = 'flex';
-    countText.textContent = `Players: ${roomState.players.length} / ${roomState.settings.maxPlayers}`;
-    
-    if(isHostMode) {
-        document.getElementById('waitingLobbyTitle').textContent = "HOST LOBBY";
-        statusText.textContent = "Configure settings and start match whenever ready";
-        startBtn.style.display = "block";
-        settingsPanel.style.pointerEvents = "auto";
-        settingsPanel.style.opacity = "1";
-    } else {
-        document.getElementById('waitingLobbyTitle').textContent = "MATCHMAKING LOBBY";
-        startBtn.style.display = "none";
-        statusText.textContent = "Waiting for the host to launch the engine...";
-        settingsPanel.style.pointerEvents = "none";
-        settingsPanel.style.opacity = "0.5";
-    }
-}
+        socket.on('playerJoined', (p) => {
+            appendSystemMessage(`${p.name} boarded the ship.`);
+        });
 
-document.getElementById('startMatchEarlyBtn').onclick = () => {
-    compileSettingsAndStart();
-};
-
-function compileSettingsAndStart() {
-    gameSettings.maxPlayers = Math.max(4, Math.min(10, parseInt(document.getElementById('set_maxPlayers').value) || 6));
-    gameSettings.numTasks = Math.max(1, Math.min(8, parseInt(document.getElementById('set_numTasks').value) || 4));
-    gameSettings.numImpostors = Math.max(1, Math.min(2, parseInt(document.getElementById('set_numImpostors').value) || 1));
-    gameSettings.numButtons = Math.max(0, Math.min(5, parseInt(document.getElementById('set_numButtons').value) || 1));
-    gameSettings.killCooldown = Math.max(5, Math.min(45, parseInt(document.getElementById('set_killCooldown').value) || 15));
-    gameSettings.ventCooldown = Math.max(0, Math.min(15, parseInt(document.getElementById('set_ventCooldown').value) || 5));
-    gameSettings.speedModifier = parseFloat(document.getElementById('set_playerSpeed').value) || 1.0;
-    gameSettings.taskbarUpdate = document.getElementById('set_taskbarUpdate').value;
-
-    socket.emit('startMatch', { roomId: activeRoomId, gameSettings: gameSettings });
-}
-
-socket.on('matchStarted', (matchData) => {
-    document.getElementById('waitingLobbyUI').style.display = 'none';
-    document.getElementById('utilityHUD').style.display = 'flex';
-    document.getElementById('taskHUDTracker').style.display = 'block';
-    settings.inGame = true;
-    forceShowTaskbar = false;
-
-    gameSettings = matchData.settings;
-    let localPlayerData = matchData.players.find(p => p.id === player.id);
-
-    player.isImpostor = localPlayerData.isImpostor;
-    player.killCooldown = gameSettings.killCooldown * 1000;
-    player.ventCooldownTimer = 0;
-    player.isDead = false;
-    player.buttonsRemaining = gameSettings.numButtons;
-    player.x = localPlayerData.x;
-    player.y = localPlayerData.y;
-    player.color = localPlayerData.color || player.color;
-    player.colorName = localPlayerData.colorName || player.colorName;
-
-    activeMatchTasks = matchData.tasksPool.map(t => ({ ...t, completed: false }));
-    
-    bots = matchData.players.filter(p => p.id !== player.id);
-
-    const card = document.getElementById('roleCardUI');
-    const rName = document.getElementById('cardRoleName');
-    const rDesc = document.getElementById('cardRoleDesc');
-    
-    card.style.display = 'flex';
-    if(player.isImpostor) {
-        rName.textContent = "IMPOSTOR"; rName.style.color = "#ef4444";
-        rDesc.textContent = "Sabotage operations and eliminate the crewmates.";
-    } else {
-        rName.textContent = "CREWMATE"; rName.style.color = "#3b82f6";
-        rDesc.textContent = `Complete ${gameSettings.numTasks} assigned tracking tasks.`;
-    }
-
-    setTimeout(() => { card.style.display = 'none'; startSimulationLoop(); }, 3000);
-});
-
-function startSimulationLoop() {
-    document.getElementById('roleText').textContent = player.isImpostor ? "Role: Impostor" : "Role: Crewmate";
-    document.getElementById('roleText').style.color = player.isImpostor ? "#ef4444" : "#3b82f6";
-    
-    if(player.isImpostor) {
-        document.getElementById('sabotageBtn').style.display = 'flex';
-        document.getElementById('killBtn').style.display = 'flex';
-    } else {
-        document.getElementById('useBtn').style.display = 'flex';
-    }
-    document.getElementById('reportBtn').style.display = 'flex';
-
-    requestAnimationFrame(gameLoop);
-}
-
-function getDist(x1, y1, x2, y2) { return Math.sqrt((x2 - x1)**2 + (y2 - y1)**2); }
-
-function checkWallCollision(x, y, radius) {
-    if(x - radius < 0 || x + radius > CONFIG.worldWidth || y - radius < 0 || y + radius > CONFIG.worldHeight) return true;
-    for(let w of walls) {
-        if (x + radius > w.x && x - radius < w.x + w.width && y + radius > w.y && y - radius < w.y + w.height) return true;
-    }
-    for(let d of doors) {
-        if (!d.open && x + radius > d.x && x - radius < d.x + d.width && y + radius > d.y && y - radius < d.y + d.height) return true;
-    }
-    return false;
-}
-
-function updateHUD() {
-    let finished = activeMatchTasks.filter(t => t.completed).length;
-    document.getElementById('taskProgressBar').style.width = `${(finished / gameSettings.numTasks) * 100}%`;
-
-    if(gameSettings.taskbarUpdate === "Always" || forceShowTaskbar) {
-        document.getElementById('progressHeader').style.display = "block";
-        document.getElementById('taskProgressBg').style.display = "block";
-    } else {
-        document.getElementById('progressHeader').style.display = "none";
-        document.getElementById('taskProgressBg').style.display = "none";
-    }
-
-    let tracker = document.getElementById('taskHUDTracker');
-    let trackerHTML = '<div style="font-weight:bold; margin-bottom:5px; text-decoration: underline;">ASSIGNED TASKS:</div>';
-    activeMatchTasks.forEach(t => {
-        trackerHTML += `<div class="task-hud-item ${t.completed ? 'done' : ''}">• ${t.name}</div>`;
-    });
-    tracker.innerHTML = trackerHTML;
-
-    let bodyNear = deadBodies.some(b => getDist(player.x, player.y, b.x, b.y) < 120);
-    document.getElementById('reportBtn').style.opacity = (bodyNear && !player.isDead) ? "1" : "0.4";
-
-    if (player.isImpostor) {
-        if(player.killCooldown > 0) {
-            player.killCooldown -= 16.66;
-            document.getElementById('killBtn').textContent = Math.ceil(player.killCooldown/1000) + "s";
-        } else {
-            document.getElementById('killBtn').textContent = "Kill";
-        }
-
-        if(player.ventCooldownTimer > 0) {
-            player.ventCooldownTimer -= 16.66;
-        }
-
-        let target = null;
-        let closestDist = 90; 
-        bots.forEach(b => {
-            if(!b.isDead && !b.isImpostor) {
-                let d = getDist(player.x, player.y, b.x, b.y);
-                if(d < closestDist) { closestDist = d; target = b; }
+        socket.on('playerLeft', (id) => {
+            if(players[id]) {
+                scene.remove(players[id].mesh);
+                delete players[id];
             }
         });
-        document.getElementById('killBtn').style.opacity = (target && player.killCooldown <= 0 && player.inVent === null) ? "1" : "0.4";
 
-        let nearVent = vents.find(v => getDist(player.x, player.y, v.x, v.y) < 55);
-        if(nearVent || player.inVent !== null) {
-            document.getElementById('ventBtn').style.display = 'flex';
-            if(player.inVent !== null) {
-                document.getElementById('ventBtn').textContent = "Exit";
-                document.getElementById('ventBtn').style.opacity = "1";
-            } else {
-                let ready = player.ventCooldownTimer <= 0;
-                document.getElementById('ventBtn').textContent = ready ? "Vent" : Math.ceil(player.ventCooldownTimer/1000) + "s";
-                document.getElementById('ventBtn').style.opacity = ready ? "1" : "0.4";
+        socket.on('hostChanged', (data) => {
+            if(data.hostId === socket.id) {
+                isHost = true;
+                document.getElementById('start-game-btn').style.display = 'block';
+                document.getElementById('setting-crew-vis').removeAttribute('disabled');
+                document.getElementById('setting-imp-vis').removeAttribute('disabled');
+                appendSystemMessage("You are now the lobby Commander.");
             }
-        } else {
-            document.getElementById('ventBtn').style.display = 'none';
-        }
-    } else {
-        let nearEmergencyButton = getDist(player.x, player.y, 1600, 520) < 60;
-        let nearTask = activeMatchTasks.find(t => !t.completed && getDist(player.x, player.y, t.x, t.y) < 70);
-        
-        if (nearEmergencyButton) {
-            let hasPresses = player.buttonsRemaining > 0;
-            document.getElementById('useBtn').style.opacity = hasPresses ? "1" : "0.4";
-            document.getElementById('useBtn').textContent = `Btn (${player.buttonsRemaining})`;
-        } else {
-            document.getElementById('useBtn').style.opacity = nearTask ? "1" : "0.4";
-            document.getElementById('useBtn').textContent = "Use";
-        }
-    }
+        });
 
-    if(sabotageActive) {
-        sabotageTimer -= 16.66;
-        document.getElementById('statusAlert').textContent = `⚠️ LIGHTS OUT! REACTION TIMER ACTIVATED (${Math.ceil(sabotageTimer/1000)}s)`;
-    } else {
-        document.getElementById('statusAlert').textContent = "";
-    }
-}
+        socket.on('settingsUpdated', (settings) => {
+            currentRoomSettings = settings;
+            document.getElementById('setting-crew-vis').value = settings.crewmateVis;
+            document.getElementById('setting-imp-vis').value = settings.impVis;
+        });
 
-document.getElementById('reportBtn').onclick = () => {
-    if(player.isDead) return;
-    let bodyNear = deadBodies.some(b => getDist(player.x, player.y, b.x, b.y) < 120);
-    if(bodyNear) {
-        socket.emit('callMeeting', { roomId: activeRoomId, reason: `${player.name} discovered a body!` });
-    }
-};
+        socket.on('chatMessageReceived', (data) => {
+            const display = document.getElementById('chat-display');
+            const msg = document.createElement('div');
+            msg.innerHTML = `<strong style="color:#00a8ff;">${data.senderName}:</strong> ${data.text}`;
+            display.appendChild(msg);
+            display.scrollTop = display.scrollHeight;
+        });
 
-document.getElementById('killBtn').onclick = () => {
-    if(!player.isImpostor || player.killCooldown > 0 || player.inVent !== null) return;
-    let target = null;
-    let closestDist = 90;
-    bots.forEach(b => {
-        if(!b.isDead && !b.isImpostor) {
-            let d = getDist(player.x, player.y, b.x, b.y);
-            if(d < closestDist) { closestDist = d; target = b; }
-        }
-    });
-    if(target) {
-        player.killCooldown = gameSettings.killCooldown * 1000;
-        socket.emit('killPlayer', { roomId: activeRoomId, targetId: target.id });
-    }
-};
-
-document.getElementById('ventBtn').onclick = () => {
-    if(!player.isImpostor) return;
-    if(player.inVent !== null) {
-        let curIdx = vents.findIndex(v => v.id === player.inVent);
-        let nextIdx = (curIdx + 1) % vents.length;
-        
-        if (isMobile) {
-            player.inVent = vents[nextIdx].id;
-            let currentVent = vents.find(v => v.id === player.inVent);
-            player.x = currentVent.x; player.y = currentVent.y;
-        } else {
-            let currentVent = vents.find(v => v.id === player.inVent);
-            player.x = currentVent.x; player.y = currentVent.y + 35;
-            player.inVent = null;
-            player.ventCooldownTimer = gameSettings.ventCooldown * 1000;
-        }
-    } else {
-        if(player.ventCooldownTimer > 0) return;
-        let nearVent = vents.find(v => getDist(player.x, player.y, v.x, v.y) < 55);
-        if(nearVent) {
-            player.inVent = nearVent.id;
-            player.x = nearVent.x; player.y = nearVent.y;
-        }
-    }
-    socket.emit('syncPosition', { roomId: activeRoomId, x: player.x, y: player.y, inVent: player.inVent });
-};
-
-document.getElementById('sabotageBtn').onclick = () => {
-    if(!player.isImpostor || sabotageActive) return;
-    document.getElementById('sabotageModal').style.display = 'flex';
-};
-
-document.getElementById('sabLightsBtn').onclick = () => {
-    socket.emit('triggerSabotage', { roomId: activeRoomId, type: 'lights' });
-    document.getElementById('sabotageModal').style.display = 'none';
-};
-
-document.getElementById('sabDoorsBtn').onclick = () => {
-    socket.emit('triggerSabotage', { roomId: activeRoomId, type: 'doors' });
-    document.getElementById('sabotageModal').style.display = 'none';
-};
-
-document.getElementById('useBtn').onclick = () => {
-    if(!player.isDead && getDist(player.x, player.y, 1600, 520) < 60) {
-        if(player.buttonsRemaining <= 0) return;
-        player.buttonsRemaining--;
-        socket.emit('callMeeting', { roomId: activeRoomId, reason: `Emergency meeting called by ${player.name}!` });
-        return;
-    }
-    if(player.isImpostor) return;
-    let nearTask = activeMatchTasks.find(t => !t.completed && getDist(player.x, player.y, t.x, t.y) < 70);
-    if(nearTask) {
-        activeTask = nearTask;
-        launchTaskGame(nearTask);
-    }
-};
-
-document.getElementById('mapBtn').onclick = () => {
-    document.getElementById('mapModal').style.display = 'flex';
-};
-
-document.getElementById('closeMapBtn').onclick = () => {
-    document.getElementById('mapModal').style.display = 'none';
-};
-
-document.querySelectorAll('.close-modal:not(#closeMapBtn)').forEach(btn => {
-    btn.onclick = (e) => {
-        e.target.closest('.modal').style.display = 'none';
-    };
-});
-
-function launchTaskGame(task) {
-    if(task.type === "wires") {
-        document.getElementById('wiresModal').style.display = 'flex';
-        setupWiresGame();
-    } else if(task.type === "swipe") {
-        document.getElementById('swipeModal').style.display = 'flex';
-        setupSwipeGame();
-    } else {
-        document.getElementById('genericTaskTitle').textContent = task.name;
-        document.getElementById('genericModal').style.display = 'flex';
-        document.getElementById('genericFeedback').textContent = "";
-        holdsTimer = 0;
-    }
-}
-
-function setupWiresGame() {
-    const space = document.getElementById('wireGameSpace');
-    space.innerHTML = "";
-    document.getElementById('wiresFeedback').textContent = "";
-    
-    let wireNodesConfig = [
-        { hex: '#ef4444', label: 'RED' }, { hex: '#3b82f6', label: 'BLUE' }, 
-        { hex: '#eab308', label: 'YLW' }, { hex: '#a855f7', label: 'PRP' }
-    ];
-    let leftOrder = [...wireNodesConfig].sort(() => Math.random() - 0.5);
-    let rightOrder = [...wireNodesConfig].sort(() => Math.random() - 0.5);
-    
-    let selectedLeft = null;
-    let leftCol = document.createElement('div');
-    let rightCol = document.createElement('div');
-
-    leftOrder.forEach(node => {
-        let n = document.createElement('div'); n.className = "wire-node"; n.style.backgroundColor = node.hex;
-        if(settings.colorblindMode) n.textContent = node.label;
-        n.onclick = () => { selectedLeft = node.hex; document.getElementById('wiresFeedback').textContent = "Selected terminal link..."; };
-        leftCol.appendChild(n);
-    });
-
-    rightOrder.forEach(node => {
-        let n = document.createElement('div'); n.className = "wire-node"; n.style.backgroundColor = node.hex;
-        if(settings.colorblindMode) n.textContent = node.label;
-        n.onclick = () => {
-            if(selectedLeft === node.hex) {
-                n.style.opacity = "0.2";
-                document.getElementById('wiresFeedback').textContent = "Wire link established.";
-                completeActiveTask();
-                setTimeout(() => document.getElementById('wiresModal').style.display = 'none', 600);
+        socket.on('positionUpdated', (data) => {
+            if(players[data.id]) {
+                players[data.id].mesh.position.set(data.x, data.y, data.z);
             } else {
-                document.getElementById('wiresFeedback').textContent = "Invalid node mismatch.";
+                buildRemotePlayer(data.id);
             }
-        };
-        rightCol.appendChild(n);
-    });
-    space.appendChild(leftCol); space.appendChild(rightCol);
-}
+        });
 
-function setupSwipeGame() {
-    const thumb = document.getElementById('swipeCard');
-    document.getElementById('swipeFeedback').textContent = "";
-    thumb.style.left = "0px";
-    
-    let isDragging = false;
-    let startSwipeTime = 0;
-
-    const startDrag = () => { isDragging = true; startSwipeTime = Date.now(); };
-    const moveDrag = (e) => {
-        if(!isDragging) return;
-        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        let rect = document.getElementById('swipeTrack').getBoundingClientRect();
-        let relativeX = clientX - rect.left;
-        if(relativeX >= 0 && relativeX <= 200) thumb.style.left = relativeX + "px";
-        
-        if(relativeX >= 190) {
-            isDragging = false;
-            if(Date.now() - startSwipeTime < 500) {
-                document.getElementById('swipeFeedback').textContent = "BAD SWIPE. TOO FAST.";
-                thumb.style.left = "0px";
-            } else {
-                document.getElementById('swipeFeedback').textContent = "ACCEPTED. TASK COMPLETE.";
-                completeActiveTask();
-                setTimeout(() => document.getElementById('swipeModal').style.display = 'none', 600);
+        socket.on('playerProfileUpdated', (p) => {
+            if(players[p.id]) {
+                players[p.id].mesh.material.color.set(p.color);
+                players[p.id].name = p.name;
+                players[p.id].cosmetic = p.cosmetic;
             }
-        }
-    };
-    window.onmousemove = moveDrag; window.onmouseup = () => isDragging = false;
-    thumb.onmousedown = startDrag; thumb.ontouchstart = startDrag; thumb.ontouchmove = moveDrag; thumb.ontouchend = () => isDragging = false;
-}
+        });
 
-document.getElementById('holdTaskBtn').onmousedown = document.getElementById('holdTaskBtn').ontouchstart = () => {
-    holdsTimer = setTimeout(() => {
-        document.getElementById('genericFeedback').textContent = "COMPLETED!";
-        completeActiveTask();
-        setTimeout(() => document.getElementById('genericModal').style.display = 'none', 600);
-    }, 2000);
-};
-document.getElementById('holdTaskBtn').onmouseup = document.getElementById('holdTaskBtn').ontouchend = () => clearTimeout(holdsTimer);
-
-function completeActiveTask() {
-    if(!activeTask) return;
-    activeTask.completed = true;
-    socket.emit('taskCompleted', { roomId: activeRoomId, taskId: activeTask.id });
-}
-
-socket.on('playerKilled', (data) => {
-    if(data.victimId === player.id) {
-        player.isDead = true;
-    } else {
-        let targetBot = bots.find(b => b.id === data.victimId);
-        if(targetBot) targetBot.isDead = true;
-    }
-    deadBodies.push({ x: data.x, y: data.y, color: data.color, colorName: data.colorName });
-});
-
-socket.on('sabotageTriggered', (data) => {
-    if(data.type === 'lights') {
-        sabotageActive = true;
-        sabotageTimer = data.duration;
-    } else if(data.type === 'doors') {
-        doors.forEach(d => { d.open = false; d.timer = data.duration; });
-    }
-});
-
-socket.on('globalPositions', (playersPositions) => {
-    playersPositions.forEach(pData => {
-        if(pData.id !== player.id) {
-            let matched = bots.find(b => b.id === pData.id);
-            if(matched) {
-                matched.x = pData.x;
-                matched.y = pData.y;
-                matched.inVent = pData.inVent;
-                matched.isDead = pData.isDead;
-                matched.color = pData.color || matched.color;
-                matched.colorName = pData.colorName || matched.colorName;
-            } else {
-                bots.push(pData);
-            }
-        }
-    });
-});
-
-socket.on('meetingCalled', (data) => {
-    keys = {}; joystick.active = false;
-    playerVoteSelection = null;
-    player.inVent = null;
-
-    document.getElementById('meetingReasonText').textContent = data.reason;
-    renderMeetingRoster(data.currentRoster);
-    document.getElementById('meetingModal').style.display = 'flex';
-});
-
-function renderMeetingRoster(currentRoster) {
-    const grid = document.getElementById('meetingRosterGrid');
-    grid.innerHTML = "";
-
-    currentRoster.forEach(member => {
-        let card = document.createElement('div');
-        card.className = `roster-card ${member.isDead ? 'dead-card' : ''}`;
-        
-        let info = document.createElement('span');
-        let labelName = member.id === player.id ? member.name + " (You)" : member.name;
-        let memberColorName = member.colorName || 'UNKNOWN';
-        let fullLabel = settings.colorblindMode ? `${labelName} [${memberColorName}]` : labelName;
-        info.textContent = `${member.isDead ? '❌' : '👤'} ${fullLabel}`;
-        card.appendChild(info);
-
-        if (!member.isDead && !player.isDead) {
-            let btn = document.createElement('button');
-            btn.className = "vote-slot-btn";
-            btn.textContent = playerVoteSelection === member.id ? "Selected" : "Vote";
-            if (playerVoteSelection === member.id) btn.style.backgroundColor = "#eab308";
+        function updateLobbyState(playerArray, hostId, settings) {
+            isHost = (hostId === socket.id);
+            document.getElementById('start-game-btn').style.display = isHost ? 'block' : 'none';
             
-            btn.onclick = () => {
-                playerVoteSelection = member.id;
-                renderMeetingRoster(currentRoster);
-            };
-            card.appendChild(btn);
-        } else if (member.isDead) {
-            let deadTag = document.createElement('span');
-            deadTag.style.color = "#ef4444";
-            deadTag.style.fontWeight = "bold";
-            deadTag.textContent = "DEAD";
-            card.appendChild(deadTag);
-        }
-        grid.appendChild(card);
-    });
+            const crewSelectView = document.getElementById('setting-crew-vis');
+            const impSelectView = document.getElementById('setting-imp-vis');
+            if(isHost) {
+                crewSelectView.removeAttribute('disabled');
+                impSelectView.removeAttribute('disabled');
+            }
+            
+            if(settings) {
+                crewSelectView.value = settings.crewmateVis;
+                impSelectView.value = settings.impVis;
+                currentRoomSettings = settings;
+            }
 
-    let skipBtn = document.getElementById('skipVoteBtn');
-    if (playerVoteSelection === "skip") {
-        skipBtn.style.background = "#eab308";
-        skipBtn.textContent = "Skipping Chosen";
-    } else {
-        skipBtn.style.background = "#475569";
-        skipBtn.textContent = "Skip Voting";
-    }
-}
+            const roster = document.getElementById('player-list-container');
+            roster.innerHTML = '';
+            playerArray.forEach(p => {
+                const row = document.createElement('div');
+                row.className = 'player-list-item';
+                row.innerHTML = `
+                    <div class="color-dot" style="background:${p.color};"></div>
+                    <span>${p.name}</span>
+                    ${p.id === hostId ? '<span class="host-tag">HOST</span>' : ''}
+                `;
+                roster.appendChild(row);
 
-document.getElementById('skipVoteBtn').onclick = () => {
-    if (player.isDead) return;
-    playerVoteSelection = "skip";
-    socket.emit('submitVote', { roomId: activeRoomId, voterId: player.id, targetId: "skip" });
-};
-
-document.getElementById('lockVoteBtn').onclick = () => {
-    if (playerVoteSelection !== null && !player.isDead) {
-        socket.emit('submitVote', { roomId: activeRoomId, voterId: player.id, targetId: playerVoteSelection });
-    }
-};
-
-socket.on('meetingResults', (data) => {
-    document.getElementById('meetingModal').style.display = 'none';
-    deadBodies = [];
-    forceShowTaskbar = false;
-
-    player.x = 1600; player.y = 550;
-    
-    if(data.ejectedName) {
-        alert(`${data.ejectedName} was ejected from the facility.`);
-        if(data.ejectedId === player.id) player.isDead = true;
-    } else {
-        alert("The voting resulted in a tie or skipped tally. No one was ejected.");
-    }
-});
-
-socket.on('matchOver', (data) => {
-    const endUI = document.getElementById('endUI');
-    const wText = document.getElementById('winnerText');
-    endUI.style.display = 'flex';
-    if(data.crewWon) { wText.textContent = "VICTORY"; wText.style.color = "#3b82f6"; }
-    else { wText.textContent = "DEFEAT"; wText.style.color = "#ef4444"; }
-});
-
-function drawMiniMap() {
-    mCtx.clearRect(0, 0, miniMapCanvas.width, miniMapCanvas.height);
-    mCtx.fillStyle = '#0f172a'; mCtx.fillRect(0,0, miniMapCanvas.width, miniMapCanvas.height);
-    
-    let sx = miniMapCanvas.width / CONFIG.worldWidth;
-    let sy = miniMapCanvas.height / CONFIG.worldHeight;
-
-    mCtx.fillStyle = '#334155';
-    walls.forEach(w => mCtx.fillRect(w.x * sx, w.y * sy, w.width * sx, w.height * sy));
-
-    mCtx.fillStyle = '#94a3b8'; mCtx.font = 'bold 9px Arial'; mCtx.textAlign = 'center';
-    mCtx.fillText("CAFETERIA", 1600 * sx, 460 * sy);
-    mCtx.fillText("WEAPONS", 2350 * sx, 450 * sy);
-    mCtx.fillText("O2", 2120 * sx, 800 * sy);
-    mCtx.fillText("NAVIGATION", 2850 * sx, 980 * sy);
-    mCtx.fillText("SHIELDS", 2350 * sx, 1480 * sy);
-    mCtx.fillText("MEDBAY", 980 * sx, 650 * sy);
-    mCtx.fillText("SECURITY", 650 * sx, 950 * sy);
-    mCtx.fillText("ELECTRICAL", 980 * sx, 1250 * sy);
-    mCtx.fillText("REACTOR", 250 * sx, 1000 * sy);
-    mCtx.fillText("STORAGE", 1530 * sx, 1380 * sy);
-
-    activeMatchTasks.forEach(t => {
-        if(!t.completed) {
-            mCtx.fillStyle = '#ef4444';
-            mCtx.fillRect(t.x * sx - 4, t.y * sy - 4, 8, 8);
-        }
-    });
-
-    mCtx.fillStyle = '#22c55e';
-    mCtx.beginPath();
-    mCtx.arc(player.x * sx, player.y * sy, 6, 0, Math.PI * 2);
-    mCtx.fill();
-}
-
-function gameLoop() {
-    updateEngine();
-    renderEngine();
-    updateHUD();
-    if(document.getElementById('mapModal').style.display === 'flex') {
-        drawMiniMap();
-    }
-    requestAnimationFrame(gameLoop);
-}
-
-function updateEngine() {
-    let mx = 0; let my = 0;
-    let positionChanged = false;
-
-    doors.forEach(d => { if(!d.open) { d.timer -= 16.66; if(d.timer <= 0) d.open = true; } });
-
-    let currentSpeed = CONFIG.basePlayerSpeed * gameSettings.speedModifier;
-
-    if (player.inVent === null && !player.isDead) {
-        if (keys['w'] || keys['arrowup']) { my = -1; positionChanged = true; }
-        if (keys['s'] || keys['arrowdown']) { my = 1; positionChanged = true; }
-        if (keys['a'] || keys['arrowleft']) { mx = -1; positionChanged = true; }
-        if (keys['d'] || keys['arrowright']) { mx = 1; positionChanged = true; }
-
-        if (joystick.active) { mx = joystick.vx; my = joystick.vy; positionChanged = true; }
-
-        let nextX = player.x + mx * currentSpeed;
-        let nextY = player.y + my * currentSpeed;
-
-        if (!checkWallCollision(nextX, player.y, player.radius)) player.x = nextX;
-        if (!checkWallCollision(player.x, nextY, player.radius)) player.y = nextY;
-        
-        if (positionChanged) {
-            socket.emit('syncPosition', { roomId: activeRoomId, x: player.x, y: player.y, inVent: null });
-        }
-    } else if (player.inVent !== null) {
-        let curVent = vents.find(v => v.id === player.inVent);
-        let targetVent = null;
-
-        if (keys['a'] || keys['arrowleft']) {
-            targetVent = vents.filter(v => v.x < curVent.x).sort((a, b) => b.x - a.x)[0];
-        } else if (keys['d'] || keys['arrowright']) {
-            targetVent = vents.filter(v => v.x > curVent.x).sort((a, b) => a.x - b.x)[0];
-        } else if (keys['w'] || keys['arrowup']) {
-            targetVent = vents.filter(v => v.y < curVent.y).sort((a, b) => b.y - a.y)[0];
-        } else if (keys['s'] || keys['arrowdown']) {
-            targetVent = vents.filter(v => v.y > curVent.y).sort((a, b) => a.y - b.y)[0];
+                if(p.id !== socket.id && !players[p.id]) {
+                    buildRemotePlayer(p);
+                }
+            });
         }
 
-        if (targetVent) {
-            player.inVent = targetVent.id;
-            player.x = targetVent.x;
-            player.y = targetVent.y;
-            socket.emit('syncPosition', { roomId: activeRoomId, x: player.x, y: player.y, inVent: player.inVent });
+        function appendSystemMessage(txt) {
+            const display = document.getElementById('chat-display');
+            const msg = document.createElement('div');
+            msg.style.color = '#eccc68';
+            msg.style.fontStyle = 'italic';
+            msg.innerText = txt;
+            display.appendChild(msg);
+            display.scrollTop = display.scrollHeight;
         }
-        keys = {}; 
-    }
-}
 
-function renderEngine() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (!settings.inGame) return; 
+        function init3DEnvironment() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color('#05070f');
 
-    ctx.save();
-    ctx.translate(canvas.width / 2 - player.x, canvas.height / 2 - player.y);
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
 
-    ctx.strokeStyle = '#161f33'; ctx.lineWidth = 2;
-    for (let i = 0; i <= CONFIG.worldWidth; i += 120) {
-        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, CONFIG.worldHeight); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(CONFIG.worldWidth, i); ctx.stroke();
-    }
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
 
-    ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(1600, 520, 35, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.font = '10px Arial'; ctx.textAlign = 'center'; ctx.fillText("EMERGENCY", 1600, 523);
+            spotlight = new THREE.SpotLight(0xffffff, 1.5, 100, Math.PI/3, 0.5, 1);
+            spotlight.position.set(0, 15, 0);
+            scene.add(spotlight);
 
-    ctx.fillStyle = "rgba(255,255,255,0.12)"; ctx.font = "bold 24px Arial"; ctx.textAlign = 'center';
-    ctx.fillText("CAFETERIA", 1600, 460); 
-    ctx.fillText("WEAPONS", 2350, 390);
-    ctx.fillText("O2", 2120, 750); 
-    ctx.fillText("NAVIGATION", 2850, 930);
-    ctx.fillText("SHIELDS", 2350, 1430); 
-    ctx.fillText("MEDBAY", 980, 550);
-    ctx.fillText("SECURITY", 650, 900); 
-    ctx.fillText("ELECTRICAL", 980, 1200);
-    ctx.fillText("REACTOR", 250, 950); 
-    ctx.fillText("STORAGE", 1530, 1320);
+            const floorGeo = new THREE.PlaneGeometry(60, 60);
+            const floorMat = new THREE.MeshStandardMaterial({ color: #1e272e, roughness: 0.6 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
 
-    ctx.fillStyle = '#27354a'; walls.forEach(w => ctx.fillRect(w.x, w.y, w.width, w.height));
-    doors.forEach(d => { ctx.fillStyle = d.open ? 'rgba(34, 197, 94, 0.15)' : '#ef4444'; ctx.fillRect(d.x, d.y, d.width, d.height); });
+            const grid = new THREE.GridHelper(60, 30, #444444, #222222);
+            grid.position.y = 0.01;
+            scene.add(grid);
 
-    vents.forEach(v => {
-        ctx.fillStyle = '#4b5563'; ctx.beginPath(); ctx.arc(v.x, v.y, 24, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#111827'; ctx.fillRect(v.x - 14, v.y - 4, 28, 8);
-    });
+            vents.forEach(v => {
+                const ventGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.1, 16);
+                const ventMat = new THREE.MeshStandardMaterial({ color: #57606f, metalness: 0.8 });
+                const ventMesh = new THREE.Mesh(ventGeo, ventMat);
+                ventMesh.position.set(v.x, v.y, v.z);
+                scene.add(ventMesh);
+                v.mesh = ventMesh;
+            });
 
-    activeMatchTasks.forEach(t => {
-        ctx.fillStyle = t.completed ? '#22c55e' : '#ef4444'; ctx.fillRect(t.x - 15, t.y - 15, 30, 30);
-        ctx.fillStyle = '#fff'; ctx.font = '11px Courier'; ctx.fillText(t.name, t.x, t.y - 25);
-    });
+            const pGeo = new THREE.CylinderGeometry(0.8, 0.8, 2, 16);
+            const pMat = new THREE.MeshStandardMaterial({ color: myLocalData.color });
+            localPlayerMesh = new THREE.Mesh(pGeo, pMat);
+            localPlayerMesh.position.set((Math.random() - 0.5) * 10, 1, (Math.random() - 0.5) * 10);
+            scene.add(localPlayerMesh);
 
-    deadBodies.forEach(b => {
-        ctx.fillStyle = b.color || '#ef4444'; ctx.fillRect(b.x - 15, b.y, 30, 15);
-        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(b.x, b.y, 6, 0, Math.PI * 2); ctx.fill();
-    });
+            camera.position.set(0, 18, 12);
+            camera.lookAt(localPlayerMesh.position);
 
-    bots.forEach(b => { 
-        if(!b.isDead && b.inVent === null) {
-            drawCharacter(b.x, b.y, b.color, b.name, b.colorName); 
+            window.addEventListener('resize', onWindowResize);
+            setupInputProfiles();
+            animateLoop();
         }
-    });
 
-    if (player.inVent === null) {
-        if(!player.isDead) drawCharacter(player.x, player.y, player.color, player.name, player.colorName);
-    }
-    ctx.restore();
+        function buildRemotePlayer(p) {
+            const pGeo = new THREE.CylinderGeometry(0.8, 0.8, 2, 16);
+            const pMat = new THREE.MeshStandardMaterial({ color: p.color || '#ffffff' });
+            const mesh = new THREE.Mesh(pGeo, pMat);
+            mesh.position.set(p.x || 0, 1, p.z || 0);
+            scene.add(mesh);
+            players[p.id] = { mesh, name: p.name, cosmetic: p.cosmetic };
+        }
 
-    if (isMobile && joystick.active) {
-        ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.beginPath(); ctx.arc(joystick.startX, joystick.startY, 50, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.beginPath(); ctx.arc(joystick.curX, joystick.curY, 25, 0, Math.PI*2); ctx.fill();
-    }
-}
+        function setupInputProfiles() {
+            window.addEventListener('keydown', (e) => {
+                if(document.activeElement.tagName === 'INPUT') return;
+                if(e.key === 'w' || e.key === 'ArrowUp') keys.w = true;
+                if(e.key === 'a' || e.key === 'ArrowLeft') keys.a = true;
+                if(e.key === 's' || e.key === 'ArrowDown') keys.s = true;
+                if(e.key === 'd' || e.key === 'ArrowRight') keys.d = true;
+            });
+            window.addEventListener('keyup', (e) => {
+                if(e.key === 'w' || e.key === 'ArrowUp') keys.w = false;
+                if(e.key === 'a' || e.key === 'ArrowLeft') keys.a = false;
+                if(e.key === 's' || e.key === 'ArrowDown') keys.s = false;
+                if(e.key === 'd' || e.key === 'ArrowRight') keys.d = false;
+            });
 
-function drawCharacter(x, y, color, tag, colorTag) {
-    let finalColor = color || '#3b82f6';
-    let finalColorTag = colorTag || 'BLUE';
-    ctx.fillStyle = finalColor; ctx.fillRect(x - 25, y - 8, 8, 22);
-    ctx.beginPath(); ctx.arc(x, y, player.radius, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#7dd3fc'; ctx.fillRect(x + 2, y - 10, 15, 11);
-    ctx.fillStyle = '#fff'; ctx.font = '13px Courier'; ctx.textAlign = 'center';
-    
-    let displayTag = settings.colorblindMode ? `${tag} (${finalColorTag})` : tag;
-    ctx.fillText(displayTag, x, y - 26);
-}
-</script>
+            const joystickContainer = document.getElementById('joystick-container');
+            const joystickKnob = document.getElementById('joystick-knob');
+            
+            if('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                joystickContainer.style.display = 'block';
+            }
+
+            joystickContainer.addEventListener('touchstart', (e) => {
+                joystickActive = true;
+                const t = e.touches[0];
+                joystickStartX = t.clientX;
+                joystickStartY = t.clientY;
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                if(!joystickActive) return;
+                const t = e.touches[0];
+                let dx = t.clientX - joystickStartX;
+                let dy = t.clientY - joystickStartY;
+                const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 40);
+                
+                const angle = Math.atan2(dy, dx);
+                moveX = Math.cos(angle) * (dist / 40);
+                moveY = Math.sin(angle) * (dist / 40);
+
+                joystickKnob.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px)`;
+            });
+
+            window.addEventListener('touchend', () => {
+                joystickActive = false;
+                moveX = 0; moveY = 0;
+                joystickKnob.style.transform = 'translate(0px, 0px)';
+            });
+
+            document.getElementById('use-btn').addEventListener('click', processUseInteractAction);
+            document.getElementById('vent-btn').addEventListener('click', toggleVentStateMode);
+            document.getElementById('sabotage-menu-btn').addEventListener('click', () => {
+                if(myRole === 'imposter' && isAlive) socket.emit('triggerSabotage', { type: 'lights' });
+            });
+        }
+
+        let clockTimeLast = performance.now();
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+            if(gameState !== 'playing' && gameState !== 'lobby') return;
+
+            const now = performance.now();
+            let frameDelta = (now - clockTimeLast) / 1000;
+            clockTimeLast = now;
+            if(frameDelta > 0.1) frameDelta = 0.1;
+
+            if(isAlive && !isVenting) {
+                let xSpeed = 0;
+                let zSpeed = 0;
+                const movementVelocityScalar = 7.5;
+
+                if(joystickActive) {
+                    xSpeed = moveX * movementVelocityScalar * frameDelta;
+                    zSpeed = moveY * movementVelocityScalar * frameDelta;
+                } else {
+                    if(keys.w) zSpeed = -movementVelocityScalar * frameDelta;
+                    if(keys.s) zSpeed = movementVelocityScalar * frameDelta;
+                    if(keys.a) xSpeed = -movementVelocityScalar * frameDelta;
+                    if(keys.d) xSpeed = movementVelocityScalar * frameDelta;
+                }
+
+                localPlayerMesh.position.x += xSpeed;
+                localPlayerMesh.position.z += zSpeed;
+
+                localPlayerMesh.position.x = Math.max(-29, Math.min(29, localPlayerMesh.position.x));
+                localPlayerMesh.position.z = Math.max(-29, Math.min(29, localPlayerMesh.position.z));
+
+                if(now - lastPositionEmit > 45 && (xSpeed !== 0 || zSpeed !== 0)) {
+                    socket.emit('syncPosition', { x: localPlayerMesh.position.x, y: localPlayerMesh.position.y, z: localPlayerMesh.position.z });
+                    lastPositionEmit = now;
+                }
+            }
+
+            camera.position.x = localPlayerMesh.position.x;
+            camera.position.z = localPlayerMesh.position.z + 14;
+            camera.lookAt(localPlayerMesh.position);
+
+            spotlight.position.set(localPlayerMesh.position.x, 15, localPlayerMesh.position.z);
+            spotlight.target = localPlayerMesh;
+
+            evaluateProximitySensors();
+            renderer.render(scene, camera);
+        }
+
+        function evaluateProximitySensors() {
+            if(gameState !== 'playing') return;
+            
+            let closeToVent = null;
+            vents.forEach(v => {
+                const d = localPlayerMesh.position.distanceTo(v.mesh.position);
+                if(d < 2.5) closeToVent = v;
+            });
+
+            const ventButton = document.getElementById('vent-btn');
+            if(myRole === 'imposter' && isAlive && closeToVent) {
+                ventButton.style.display = 'flex';
+                currentVent = closeToVent;
+            } else if(!isVenting) {
+                ventButton.style.display = 'none';
+                currentVent = null;
+            }
+
+            const useButton = document.getElementById('use-btn');
+            if(lightsSabotaged && isAlive && !isVenting) {
+                let nearBreaker = localPlayerMesh.position.distanceTo(new THREE.Vector3(0,0,0)) < 4;
+                useButton.style.display = nearBreaker ? 'flex' : 'none';
+            } else {
+                useButton.style.display = 'none';
+            }
+        }
+
+        function toggleVentStateMode() {
+            if(!currentVent) return;
+            if(!isVenting) {
+                isVenting = true;
+                localPlayerMesh.visible = false;
+                localPlayerMesh.position.set(currentVent.x, -2, currentVent.z);
+                document.getElementById('vent-btn').innerText = 'Exit';
+            } else {
+                isVenting = false;
+                localPlayerMesh.visible = true;
+                localPlayerMesh.position.y = 1;
+                document.getElementById('vent-btn').innerText = 'Vent';
+                socket.emit('syncPosition', { x: localPlayerMesh.position.x, y: localPlayerMesh.position.y, z: localPlayerMesh.position.z });
+            }
+        }
+
+        function processUseInteractAction() {
+            if(lightsSabotaged) {
+                document.getElementById('lights-minigame').style.display = 'flex';
+            }
+        }
+
+        window.closeMinigame = function() {
+            document.getElementById('lights-minigame').style.display = 'none';
+        };
+
+        const switches = [
+            document.getElementById('switch-0'),
+            document.getElementById('switch-1'),
+            document.getElementById('switch-2')
+        ];
+        switches.forEach((sw, idx) => {
+            sw.addEventListener('click', () => {
+                const currentState = sw.classList.contains('active');
+                socket.emit('fixLightBulb', { index: idx, state: !currentState });
+            });
+        });
+
+        socket.on('sabotageTriggered', (data) => {
+            if(data.type === 'lights') {
+                lightsSabotaged = true;
+                document.getElementById('sabotage-indicator').style.display = 'block';
+                updateVisibilityLighting();
+            }
+        });
+
+        socket.on('lightsStateUpdated', (data) => {
+            data.bulbs.forEach((state, idx) => {
+                const bulb = document.getElementById(`bulb-${idx}`);
+                const sw = document.getElementById(`switch-${idx}`);
+                if(state) {
+                    bulb.classList.add('on');
+                    sw.classList.add('active');
+                    sw.innerText = 'ON';
+                } else {
+                    bulb.classList.remove('on');
+                    sw.classList.remove('active');
+                    sw.innerText = 'OFF';
+                }
+            });
+        });
+
+        socket.on('sabotageFixed', (data) => {
+            if(data.type === 'lights') {
+                lightsSabotaged = false;
+                document.getElementById('sabotage-indicator').style.display = 'none';
+                document.getElementById('lights-minigame').style.display = 'none';
+                updateVisibilityLighting();
+            }
+        });
+
+        function updateVisibilityLighting() {
+            if(lightsSabotaged) {
+                if(myRole === 'imposter') {
+                    ambientLight.intensity = 0.8;
+                    spotlight.distance = currentRoomSettings.impVis;
+                } else {
+                    ambientLight.intensity = 0.05;
+                    spotlight.distance = currentRoomSettings.crewmateVis;
+                }
+            } else {
+                ambientLight.intensity = 0.8;
+                spotlight.distance = 100;
+            }
+        }
+
+        socket.on('matchStarted', (playerData) => {
+            gameState = 'playing';
+            document.getElementById('lobby-ui').style.display = 'none';
+            
+            const self = playerData.find(p => p.id === socket.id);
+            myRole = self.role;
+            isAlive = self.isAlive;
+
+            const reveal = document.getElementById('role-reveal');
+            const title = document.getElementById('role-text');
+            const desc = document.getElementById('role-desc');
+
+            title.innerText = myRole;
+            title.className = myRole;
+            desc.innerText = (myRole === 'imposter') ? 'Infiltrate and eliminate the crewmates.' : 'Complete systems tasks and survive.';
+            
+            reveal.style.display = 'flex';
+            setTimeout(() => { reveal.style.display = 'none'; }, 3500);
+
+            if(myRole === 'imposter') {
+                document.getElementById('sabotage-menu-btn').style.display = 'flex';
+            }
+            updateVisibilityLighting();
+        });
+
+        socket.on('matchEnded', (data) => {
+            gameState = 'lobby';
+            document.getElementById('lobby-ui').style.display = 'block';
+            document.getElementById('sabotage-menu-btn').style.display = 'none';
+            document.getElementById('use-btn').style.display = 'none';
+            document.getElementById('vent-btn').style.display = 'none';
+            document.getElementById('sabotage-indicator').style.display = 'none';
+            
+            lightsSabotaged = false;
+            isVenting = false;
+            localPlayerMesh.visible = true;
+            localPlayerMesh.position.y = 1;
+            
+            alert(`Game Over! Winners: ${data.winner.toUpperCase()}`);
+            updateLobbyState(data.players, rooms[myRoomId]?.hostId);
+        });
+
+        function onWindowResize() {
+            if(!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    </script>
 </body>
 </html>
