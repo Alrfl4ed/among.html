@@ -6,62 +6,57 @@
     <title>Space Sabotage</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; color: #fff; }
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        .ui-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; justify-content: center; align-items: center; background: rgba(10, 15, 30, 0.85); color: #fff; }
-        .panel { background: #151d30; padding: 30px; border-radius: 12px; border: 2px solid #2a3b5c; width: 90%; max-width: 450px; text-align: center; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        h2 { margin-bottom: 20px; font-size: 24px; color: #00d2ff; text-transform: uppercase; letter-spacing: 1px; }
-        input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: none; font-size: 16px; outline: none; }
-        input, select { background: #0d1321; color: #fff; border: 1px solid #233253; }
-        button { background: #00a8ff; color: #fff; font-weight: bold; cursor: pointer; transition: background 0.2s; text-transform: uppercase; }
-        button:hover { background: #008cd3; }
-        .secondary-btn { background: #3a4b6e; }
-        .secondary-btn:hover { background: #2d3b58; }
+        .menu-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #111; }
+        .menu-box { background: #222; padding: 20px; border-radius: 8px; width: 300px; text-align: center; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        input, select, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 4px; border: 1px solid #444; background: #333; color: #fff; font-size: 16px; }
+        button { background: #0578ff; border: none; font-weight: bold; cursor: pointer; }
+        button:hover { background: #0062d1; }
         
-        #lobby-ui { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; padding: 20px; color: #fff; pointer-events: none; }
+        #lobby-ui { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; padding: 20px; pointer-events: none; }
         .interactive { pointer-events: auto; }
         
-        .left-panel { position: absolute; top: 20px; left: 20px; width: 280px; display: flex; flex-direction: column; gap: 15px; }
-        .right-panel { position: absolute; top: 20px; right: 20px; width: 320px; display: flex; flex-direction: column; gap: 15px; }
+        .left-panel { position: absolute; top: 20px; left: 20px; width: 260px; display: flex; flex-direction: column; gap: 10px; }
+        .right-panel { position: absolute; top: 20px; right: 20px; width: 300px; display: flex; flex-direction: column; gap: 10px; }
+        .info-box { background: rgba(34, 34, 34, 0.9); border: 1px solid #444; border-radius: 6px; padding: 12px; }
         
-        .info-box { background: rgba(21, 29, 48, 0.85); border: 1px solid #2a3b5c; border-radius: 8px; padding: 15px; }
-        .player-list-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .color-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #fff; }
-        .host-tag { background: #ffd700; color: #000; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: bold; margin-left: auto; }
+        .player-entry { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .swatch { width: 12px; height: 12px; border-radius: 50%; }
+        .host-label { background: #ffca28; color: #000; font-size: 10px; padding: 1px 3px; border-radius: 2px; font-weight: bold; margin-left: auto; }
         
-        .chat-box { height: 200px; display: flex; flex-direction: column; background: rgba(13, 19, 33, 0.9); border: 1px solid #2a3b5c; border-radius: 8px; overflow: hidden; }
-        .chat-messages { flex: 1; padding: 10px; overflow-y: auto; font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
-        .chat-input-container { display: flex; border-top: 1px solid #2a3b5c; }
-        .chat-input-container input { margin: 0; border: none; border-radius: 0; flex: 1; padding: 8px; font-size: 14px; }
-        .chat-input-container button { margin: 0; border-radius: 0; width: 60px; padding: 8px; font-size: 14px; }
+        .chat-area { height: 180px; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.9); border: 1px solid #444; border-radius: 6px; overflow: hidden; }
+        .chat-logs { flex: 1; padding: 8px; overflow-y: auto; font-size: 14px; }
+        .chat-input-bar { display: flex; border-top: 1px solid #444; }
+        .chat-input-bar input { margin: 0; border: none; border-radius: 0; flex: 1; padding: 6px; }
+        .chat-input-bar button { margin: 0; border-radius: 0; width: 50px; padding: 6px; font-size: 14px; }
         
-        #joystick-container { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; z-index: 8; display: none; touch-action: none; }
-        #joystick-knob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+        #joystick-container { position: absolute; bottom: 30px; left: 30px; width: 110px; height: 110px; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; z-index: 8; display: none; touch-action: none; }
+        #joystick-knob { position: absolute; top: 35px; left: 35px; width: 40px; height: 40px; background: rgba(255,255,255,0.4); border-radius: 50%; }
         
-        .action-btn { position: absolute; bottom: 40px; right: 40px; width: 80px; height: 80px; border-radius: 50%; background: rgba(21, 29, 48, 0.85); border: 3px solid #00a8ff; color: #fff; font-weight: bold; font-size: 14px; display: none; justify-content: center; align-items: center; z-index: 8; cursor: pointer; text-transform: uppercase; }
-        #vent-btn { right: 140px; border-color: #e84118; }
-        #sabotage-menu-btn { bottom: 140px; right: 40px; border-color: #ff9f43; }
+        .action-btn { position: absolute; bottom: 30px; right: 30px; width: 75px; height: 75px; border-radius: 50%; background: rgba(34, 34, 34, 0.9); border: 2px solid #0578ff; color: #fff; font-weight: bold; font-size: 13px; display: none; justify-content: center; align-items: center; z-index: 8; cursor: pointer; }
+        #vent-btn { right: 120px; border-color: #ff3838; }
+        #sabotage-menu-btn { bottom: 120px; right: 30px; border-color: #ff9f43; }
         
-        .minigame-screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; }
-        .lights-panel { background: #222; border: 4px solid #444; border-radius: 10px; padding: 30px; width: 320px; text-align: center; }
-        .bulbs-container { display: flex; justify-content: space-around; margin: 30px 0; }
-        .bulb-wrapper { display: flex; flex-direction: column; align-items: center; gap: 15px; }
-        .bulb { width: 40px; height: 40px; border-radius: 50%; background: #441111; border: 2px solid #111; box-shadow: inset 0 0 10px #000; }
-        .bulb.on { background: #00ff00; border-color: #fff; box-shadow: 0 0 20px #00ff00, inset 0 0 5px #fff; }
-        .switch-btn { width: 60px; background: #333; border: 2px solid #555; padding: 8px; border-radius: 4px; color: #fff; font-weight: bold; cursor: pointer; }
-        .switch-btn.active { background: #555; border-color: #00ff00; }
+        .overlay-screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; }
+        .panel-box { background: #222; border: 2px solid #444; border-radius: 6px; padding: 20px; width: 280px; text-align: center; }
+        .bulbs-line { display: flex; justify-content: space-around; margin: 20px 0; }
+        .bulb { width: 35px; height: 35px; border-radius: 50%; background: #3a1010; border: 2px solid #111; }
+        .bulb.on { background: #00ff00; box-shadow: 0 0 15px #00ff00; }
+        .sw-btn { width: 55px; background: #444; padding: 6px; border-radius: 4px; color: #fff; cursor: pointer; border: 1px solid #555; }
+        .sw-btn.active { background: #666; border-color: #00ff00; }
         
-        .sabotage-overlay { display: none; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(232, 65, 24, 0.9); color: #fff; padding: 12px 30px; border-radius: 6px; font-weight: bold; font-size: 18px; animation: blink 1s infinite; z-index: 6; border: 1px solid #ff4757; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .alert-banner { display: none; position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: #ff3838; color: #fff; padding: 10px 25px; border-radius: 4px; font-weight: bold; animation: pulse 1s infinite; z-index: 6; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         
         #role-reveal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 30; background: #000; justify-content: center; align-items: center; flex-direction: column; }
-        #role-text { font-size: 48px; font-weight: bold; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 10px; }
-        #role-text.imposter { color: #ff4757; text-shadow: 0 0 25px #ff4757; }
-        #role-text.crewmate { color: #00d2ff; text-shadow: 0 0 25px #00d2ff; }
+        #role-text { font-size: 40px; font-weight: bold; text-transform: uppercase; }
+        #role-text.imposter { color: #ff3838; }
+        #role-text.crewmate { color: #0578ff; }
         
-        .setting-row { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; font-size: 14px; }
-        .setting-row select { width: 100px; padding: 4px; margin: 0; }
+        .setting-item { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 13px; }
+        .setting-item select { width: 90px; padding: 3px; margin: 0; }
     </style>
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -70,14 +65,14 @@
 
     <div id="canvas-container"></div>
 
-    <div id="auth-screen" class="ui-screen">
-        <div class="panel">
-            <h2>Space Sabotage</h2>
-            <input type="text" id="username-input" placeholder="Enter Nickname" maxlength="15">
+    <div id="auth-screen" class="menu-screen">
+        <div class="menu-box">
+            <h2 style="margin-bottom:10px;">Space Sabotage</h2>
+            <input type="text" id="username-input" placeholder="Nickname" maxlength="15">
             <select id="color-input">
-                <option value="#ff4757">Red</option>
+                <option value="#ff3838">Red</option>
                 <option value="#2ed573">Green</option>
-                <option value="#1e90ff">Blue</option>
+                <option value="#0578ff">Blue</option>
                 <option value="#ffa502">Orange</option>
                 <option value="#eccc68">Yellow</option>
                 <option value="#a4b0be">Purple</option>
@@ -88,98 +83,98 @@
                 <option value="explorer">Explorer Cap</option>
                 <option value="captain">Captain Hat</option>
             </select>
-            <button id="find-match-btn">Find Servers</button>
+            <button id="find-match-btn">Find Games</button>
+            <button id="create-lobby-btn" style="background:#2ed573; margin-top:5px;">Create Game</button>
         </div>
     </div>
 
-    <div id="browser-screen" class="ui-screen" style="display:none;">
-        <div class="panel" style="max-width: 550px;">
-            <h2>Available Lobbies</h2>
-            <button id="create-lobby-btn" style="background:#2ed573;">Create New Lobby</button>
-            <div id="server-list" style="max-height: 220px; overflow-y: auto; margin: 15px 0; text-align: left;"></div>
-            <button class="secondary-btn" id="back-auth-btn">Back</button>
+    <div id="browser-screen" class="menu-screen" style="display:none;">
+        <div class="menu-box" style="width:340px;">
+            <h2 style="margin-bottom:10px;">Lobbies</h2>
+            <div id="server-list" style="max-height: 200px; overflow-y: auto; text-align: left; margin: 10px 0;"></div>
+            <button class="secondary-btn" id="back-auth-btn" style="background:#444;">Back</button>
         </div>
     </div>
 
     <div id="lobby-ui">
         <div class="left-panel interactive">
             <div class="info-box">
-                <h3 style="color:#00d2ff; margin-bottom:8px; font-size:16px;">Lobby Settings</h3>
+                <h4 style="color:#0578ff; margin-bottom:5px;">Options</h4>
                 <div id="host-settings-view">
-                    <div class="setting-row">
+                    <div class="setting-item">
                         <span>Crewmate Vis:</span>
                         <select id="setting-crew-vis" disabled>
-                            <option value="3">3m (Short)</option>
-                            <option value="6" selected>6m (Normal)</option>
-                            <option value="12">12m (Long)</option>
+                            <option value="3">3m</option>
+                            <option value="6" selected>6m</option>
+                            <option value="12">12m</option>
                         </select>
                     </div>
-                    <div class="setting-row">
-                        <span>Imposter Vis:</span>
+                    <div class="setting-item">
+                        <span>Imp Vis:</span>
                         <select id="setting-imp-vis" disabled>
-                            <option value="8">8m (Short)</option>
-                            <option value="16" selected>16m (Normal)</option>
-                            <option value="24">24m (Long)</option>
+                            <option value="8">8m</option>
+                            <option value="16" selected>16m</option>
+                            <option value="24">24m</option>
                         </select>
                     </div>
                 </div>
             </div>
             <div class="info-box" style="flex: 1; display: flex; flex-direction: column;">
-                <h3 style="margin-bottom:8px; font-size:15px;">Crew Roster</h3>
+                <h4 style="margin-bottom:5px;">Players</h4>
                 <div id="player-list-container" style="flex:1; overflow-y:auto;"></div>
             </div>
         </div>
 
         <div class="right-panel interactive">
-            <div class="chat-box">
-                <div class="chat-messages" id="chat-display"></div>
-                <div class="chat-input-container">
-                    <input type="text" id="chat-input-field" placeholder="Send message..." maxlength="60">
+            <div class="chat-area">
+                <div class="chat-logs" id="chat-display"></div>
+                <div class="chat-input-bar">
+                    <input type="text" id="chat-input-field" placeholder="Chat..." maxlength="60">
                     <button id="chat-send-btn">Send</button>
                 </div>
             </div>
-            <button id="start-game-btn" style="display:none; background:#2ed573;">Start Match</button>
-            <button id="leave-lobby-btn" class="secondary-btn">Leave</button>
+            <button id="start-game-btn" style="display:none; background:#2ed573;">Start Game</button>
+            <button id="leave-lobby-btn" style="background:#444;">Leave</button>
         </div>
     </div>
 
     <div id="joystick-container"><div id="joystick-knob"></div></div>
     <div id="use-btn" class="action-btn interactive">Use</div>
     <div id="vent-btn" class="action-btn interactive">Vent</div>
-    <div id="sabotage-menu-btn" class="action-btn interactive" style="background:#e84118; border-color:#fff;">Sabotage</div>
+    <div id="sabotage-menu-btn" class="action-btn interactive" style="background:#ff3838; border-color:#fff;">Sabotage</div>
 
-    <div id="sabotage-indicator" class="sabotage-overlay">FIX LIGHTS SYSTEM (3 BULBS)</div>
+    <div id="sabotage-indicator" class="alert-banner">LIGHTS MALFUNCTION (3 BULBS)</div>
 
-    <div id="lights-minigame" class="minigame-screen interactive">
-        <div class="lights-panel">
-            <h3 style="color:#fff; margin-bottom:10px;">Breaker Switches</h3>
-            <div class="bulbs-container">
-                <div class="bulb-wrapper">
+    <div id="lights-minigame" class="overlay-screen interactive">
+        <div class="panel-box">
+            <h3 style="margin-bottom:10px;">Fix Lights</h3>
+            <div class="bulbs-line">
+                <div>
                     <div class="bulb" id="bulb-0"></div>
-                    <button class="switch-btn" id="switch-0">OFF</button>
+                    <button class="sw-btn" id="switch-0" style="margin-top:10px;">OFF</button>
                 </div>
-                <div class="bulb-wrapper">
+                <div>
                     <div class="bulb" id="bulb-1"></div>
-                    <button class="switch-btn" id="switch-1">OFF</button>
+                    <button class="sw-btn" id="switch-1" style="margin-top:10px;">OFF</button>
                 </div>
-                <div class="bulb-wrapper">
+                <div>
                     <div class="bulb" id="bulb-2"></div>
-                    <button class="switch-btn" id="switch-2">OFF</button>
+                    <button class="sw-btn" id="switch-2" style="margin-top:10px;">OFF</button>
                 </div>
             </div>
-            <button class="secondary-btn" onclick="closeMinigame()">Close Panel</button>
+            <button style="background:#444; margin:0;" onclick="closeMinigame()">Close</button>
         </div>
     </div>
 
     <div id="role-reveal">
         <div id="role-text">Crewmate</div>
-        <div style="color:#aaa; font-size:16px;" id="role-desc">Complete tasks or find the imposter.</div>
     </div>
 
     <script>
         const socket = io();
 
-        let myLocalData = { name: 'Player', color: '#ff4757', cosmetic: 'none' };
+        let myLocalData = { name: 'Player', color: '#ff3838', cosmetic: 'none' };
+        
         function loadSavedProfile() {
             const n = sessionStorage.getItem('as_name');
             const c = sessionStorage.getItem('as_color');
@@ -221,25 +216,29 @@
         let moveX = 0, moveY = 0;
         let lastPositionEmit = 0;
 
-        document.getElementById('find-match-btn').addEventListener('click', () => {
+        function cacheFormInput() {
             const name = document.getElementById('username-input').value.trim() || 'Player';
             const color = document.getElementById('color-input').value;
             const cosmetic = document.getElementById('cosmetic-input').value;
             myLocalData = { name, color, cosmetic };
             saveProfile(name, color, cosmetic);
-            
+        }
+
+        document.getElementById('find-match-btn').addEventListener('click', () => {
+            cacheFormInput();
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('browser-screen').style.display = 'flex';
             socket.emit('requestRoomList');
         });
 
         document.getElementById('create-lobby-btn').addEventListener('click', () => {
+            cacheFormInput();
             socket.emit('createRoom', {
                 playerName: myLocalData.name,
-                roomName: `${myLocalData.name}'s Bay`,
+                roomName: `${myLocalData.name}'s Game`,
                 maxPlayers: 10,
-                crewmateVis: parseInt(document.getElementById('setting-crew-vis').value),
-                impVis: parseInt(document.getElementById('setting-imp-vis').value)
+                crewmateVis: 6,
+                impVis: 16
             });
         });
 
@@ -285,26 +284,25 @@
             const container = document.getElementById('server-list');
             container.innerHTML = '';
             if(list.length === 0) {
-                container.innerHTML = '<p style="color:#aaa; text-align:center;">No processing lobbies found.</p>';
+                container.innerHTML = '<p style="color:#aaa; text-align:center; font-size:14px;">No custom matches active.</p>';
                 return;
             }
             list.forEach(room => {
                 if(room.status === 'lobby') {
                     const row = document.createElement('div');
-                    row.style.background = '#233253';
-                    row.style.padding = '12px';
-                    row.style.marginBottom = '8px';
-                    row.style.borderRadius = '6px';
+                    row.style.background = '#333';
+                    row.style.padding = '8px';
+                    row.style.marginBottom = '6px';
+                    row.style.borderRadius = '4px';
                     row.style.display = 'flex';
                     row.style.justifyContent = 'space-between';
                     row.style.alignItems = 'center';
                     
                     row.innerHTML = `
-                        <div>
-                            <strong>${room.name}</strong><br>
-                            <span style="font-size:12px; color:#00d2ff;">Players: ${room.players}/${room.maxPlayers}</span>
+                        <div style="font-size:14px;">
+                            <strong>${room.name}</strong> <span style="color:#0578ff;">(${room.players}/${room.maxPlayers})</span>
                         </div>
-                        <button style="width:80px; padding:6px; margin:0; font-size:12px;" onclick="joinLobby('${room.id}')">Join</button>
+                        <button style="width:60px; padding:4px; margin:0; font-size:12px;" onclick="joinLobby('${room.id}')">Join</button>
                     `;
                     container.appendChild(row);
                 }
@@ -327,6 +325,7 @@
         socket.on('joinSuccess', (data) => {
             myRoomId = data.roomId;
             gameState = 'lobby';
+            document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('browser-screen').style.display = 'none';
             document.getElementById('lobby-ui').style.display = 'block';
             
@@ -335,7 +334,7 @@
         });
 
         socket.on('playerJoined', (p) => {
-            appendSystemMessage(`${p.name} boarded the ship.`);
+            appendSystemMessage(`${p.name} connected.`);
         });
 
         socket.on('playerLeft', (id) => {
@@ -351,7 +350,7 @@
                 document.getElementById('start-game-btn').style.display = 'block';
                 document.getElementById('setting-crew-vis').removeAttribute('disabled');
                 document.getElementById('setting-imp-vis').removeAttribute('disabled');
-                appendSystemMessage("You are now the lobby Commander.");
+                appendSystemMessage("You are now host.");
             }
         });
 
@@ -364,7 +363,7 @@
         socket.on('chatMessageReceived', (data) => {
             const display = document.getElementById('chat-display');
             const msg = document.createElement('div');
-            msg.innerHTML = `<strong style="color:#00a8ff;">${data.senderName}:</strong> ${data.text}`;
+            msg.innerHTML = `<strong>${data.senderName}:</strong> ${data.text}`;
             display.appendChild(msg);
             display.scrollTop = display.scrollHeight;
         });
@@ -406,11 +405,11 @@
             roster.innerHTML = '';
             playerArray.forEach(p => {
                 const row = document.createElement('div');
-                row.className = 'player-list-item';
+                row.className = 'player-entry';
                 row.innerHTML = `
-                    <div class="color-dot" style="background:${p.color};"></div>
+                    <div class="swatch" style="background:${p.color};"></div>
                     <span>${p.name}</span>
-                    ${p.id === hostId ? '<span class="host-tag">HOST</span>' : ''}
+                    ${p.id === hostId ? '<span class="host-label">HOST</span>' : ''}
                 `;
                 roster.appendChild(row);
 
@@ -423,8 +422,7 @@
         function appendSystemMessage(txt) {
             const display = document.getElementById('chat-display');
             const msg = document.createElement('div');
-            msg.style.color = '#eccc68';
-            msg.style.fontStyle = 'italic';
+            msg.style.color = '#ffca28';
             msg.innerText = txt;
             display.appendChild(msg);
             display.scrollTop = display.scrollHeight;
@@ -432,8 +430,10 @@
 
         function init3DEnvironment() {
             const container = document.getElementById('canvas-container');
+            if(renderer) return; 
+
             scene = new THREE.Scene();
-            scene.background = new THREE.Color('#05070f');
+            scene.background = new THREE.Color('#111');
 
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
             renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -448,18 +448,18 @@
             scene.add(spotlight);
 
             const floorGeo = new THREE.PlaneGeometry(60, 60);
-            const floorMat = new THREE.MeshStandardMaterial({ color: #1e272e, roughness: 0.6 });
+            const floorMat = new THREE.MeshStandardMaterial({ color: #222, roughness: 0.6 });
             const floor = new THREE.Mesh(floorGeo, floorMat);
             floor.rotation.x = -Math.PI / 2;
             scene.add(floor);
 
-            const grid = new THREE.GridHelper(60, 30, #444444, #222222);
+            const grid = new THREE.GridHelper(60, 30, #333, #222);
             grid.position.y = 0.01;
             scene.add(grid);
 
             vents.forEach(v => {
                 const ventGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.1, 16);
-                const ventMat = new THREE.MeshStandardMaterial({ color: #57606f, metalness: 0.8 });
+                const ventMat = new THREE.MeshStandardMaterial({ color: #444, metalness: 0.8 });
                 const ventMesh = new THREE.Mesh(ventGeo, ventMat);
                 ventMesh.position.set(v.x, v.y, v.z);
                 scene.add(ventMesh);
@@ -523,11 +523,11 @@
                 const t = e.touches[0];
                 let dx = t.clientX - joystickStartX;
                 let dy = t.clientY - joystickStartY;
-                const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 40);
+                const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 35);
                 
                 const angle = Math.atan2(dy, dx);
-                moveX = Math.cos(angle) * (dist / 40);
-                moveY = Math.sin(angle) * (dist / 40);
+                moveX = Math.cos(angle) * (dist / 35);
+                moveY = Math.sin(angle) * (dist / 35);
 
                 joystickKnob.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px)`;
             });
@@ -716,14 +716,12 @@
 
             const reveal = document.getElementById('role-reveal');
             const title = document.getElementById('role-text');
-            const desc = document.getElementById('role-desc');
 
             title.innerText = myRole;
             title.className = myRole;
-            desc.innerText = (myRole === 'imposter') ? 'Infiltrate and eliminate the crewmates.' : 'Complete systems tasks and survive.';
             
             reveal.style.display = 'flex';
-            setTimeout(() => { reveal.style.display = 'none'; }, 3500);
+            setTimeout(() => { reveal.style.display = 'none'; }, 3000);
 
             if(myRole === 'imposter') {
                 document.getElementById('sabotage-menu-btn').style.display = 'flex';
@@ -745,7 +743,7 @@
             localPlayerMesh.position.y = 1;
             
             alert(`Game Over! Winners: ${data.winner.toUpperCase()}`);
-            updateLobbyState(data.players, rooms[myRoomId]?.hostId);
+            updateLobbyState(data.players, data.hostId);
         });
 
         function onWindowResize() {
